@@ -1,4 +1,4 @@
-name: /home/dvalnicek/pycharmProjects/BP_homography/BP_Geoformer
+ame: BP_Geoformer
 channels:
   - defaults
   - conda-forge

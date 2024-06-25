@@ -99,4 +99,5 @@ class GeoFormer():
         return matches, kpts1, kpts2, scores
 
 g = GeoFormer(640, 0.2, no_match_upscale=False, ckpt='saved_ckpt/geoformer.ckpt', device='cuda')
-g.match_pairs('/data3/ljz/matching/data/datasets/copy/query/106_2.jpg', '/data3/ljz/matching/data/datasets/copy/refer/106_1.jpg', is_draw=True)
+# print(g.match_pairs('./data/Screenshot1.png', './data/img.png', is_draw=True)[3])
+print(g.match_pairs('./data/timestamp_00_39_59_name_IMA_2024-02-20 (1).mp400001.png', './data/img.png', is_draw=True)[3])

@@ -1,6 +1,6 @@
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 
 import eval_tool.immatch as immatch
 from eval_tool.immatch.utils.data_io import lprint
@@ -103,6 +103,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    print(args)
     eval_hpatches(
         args.root_dir, args.config, args.task,
         h_solver=args.h_solver,
