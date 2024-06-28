@@ -1,13 +1,18 @@
 from argparse import Namespace
+
+import numpy
+import pydegensac
 import torch
 import numpy as np
 import cv2
+from torchvision import transforms
 
 from model.loftr_src.loftr.utils.cvpr_ds_config import default_cfg
 from model.full_model import GeoFormer as GeoFormer_
 
-from eval_tool.immatch.utils.data_io import load_gray_scale_tensor_cv
+from eval_tool.immatch.utils.data_io import load_gray_scale_tensor_cv, resize_im
 from model.geo_config import default_cfg as geoformer_cfg
+
 
 class GeoFormer():
     def __init__(self, imsize, match_threshold, no_match_upscale=False, ckpt=None, device='cuda'):
@@ -38,7 +43,15 @@ class GeoFormer():
     def change_deivce(self, device):
         self.device = device
         self.model.to(device)
+
     def load_im(self, im_path, enhanced=False):
+        if type(im_path) is numpy.ndarray:
+            gray = cv2.cvtColor(im_path, cv2.COLOR_BGR2GRAY)
+            ho, wo = gray.shape
+            wt, ht, scale = resize_im(wo, ho, imsize=self.imsize, dfactor=8, value_to_scale=min, aspan=False)
+            im = cv2.resize(gray, (wt, ht))
+            im = transforms.functional.to_tensor(im).unsqueeze(0).to(self.device)
+            return im, scale
         return load_gray_scale_tensor_cv(
             im_path, self.device, imsize=self.imsize, dfactor=8, enhanced=enhanced, value_to_scale=min
         )
@@ -50,6 +63,7 @@ class GeoFormer():
             batch = self.model(batch)
         kpts1 = batch['mkpts0_f'].cpu().numpy()
         kpts2 = batch['mkpts1_f'].cpu().numpy()
+
         def draw():
             import matplotlib.pyplot as plt
             import cv2
@@ -68,6 +82,7 @@ class GeoFormer():
                                    None)
             plt.imshow(show)
             plt.show()
+
         if is_draw:
             draw()
         scores = batch['mconf'].cpu().numpy()
@@ -98,6 +113,22 @@ class GeoFormer():
 
         return matches, kpts1, kpts2, scores
 
-g = GeoFormer(640, 0.2, no_match_upscale=False, ckpt='saved_ckpt/geoformer.ckpt', device='cuda')
-# print(g.match_pairs('./data/Screenshot1.png', './data/img.png', is_draw=True)[3])
-print(g.match_pairs('./data/timestamp_00_39_59_name_IMA_2024-02-20 (1).mp400001.png', './data/img.png', is_draw=True)[3])
+#
+# g = GeoFormer(640, 0.2, no_match_upscale=False, ckpt='saved_ckpt/geoformer.ckpt', device='cuda')
+# # print(g.match_pairs('./data/Screenshot1.png', './data/img.png', is_draw=True)[3])
+# matches, kpts1, kpts2, scores = g.match_pairs('./data/img_1.png', './data/img.png', is_draw=True)
+# print("scores: ", scores)
+# print("matches: ", matches)
+# print("kpts1: ", kpts1)
+# print("kpts2: ", kpts2)
+# indices = np.argpartition(scores, -4)[-4:]
+# print("top 4 indices: ", indices)
+# print("top 4 scores: ", scores[indices])
+# print("top 4 matches: ", matches[indices])
+#
+# h, mask = pydegensac.findHomography(matches[:, :2], matches[:, 2:4], 5.0)
+# # h, mask = cv2.findHomography(matches[:, :2], matches[:, 2:4], method=cv2.RANSAC, ransacReprojThreshold=5.0)
+#
+# print("Homography: ")
+# print(h)
+# print("Confidence: ", mask)
