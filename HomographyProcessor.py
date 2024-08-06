@@ -21,9 +21,10 @@ class HomographyProcessor:
         self.current_frame_homog_correspondences = 0
 
     def get_homography_matrix(self):
-        if self.n_of_summed_homographies == 0:
-            return self.sum_of_frame_homographies
-        return self.sum_of_frame_homographies / self.n_of_summed_homographies
+        return self.current_frame_best_homography
+        # if self.n_of_summed_homographies == 0:
+        #     return self.sum_of_frame_homographies
+        # return self.sum_of_frame_homographies / self.n_of_summed_homographies
 
     @staticmethod
     def check_array_shape(arr):
@@ -47,6 +48,7 @@ class HomographyProcessor:
         self.current_frame_homog_correspondences = matches.shape[0]
 
     def add_current_frame_and_start_new(self):
+        return
         if self.current_frame_homog_correspondences == 0:
             return
         self.sum_of_frame_homographies +=  self.current_frame_best_homography
