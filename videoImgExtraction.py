@@ -44,11 +44,6 @@ if __name__ == '__main__':
         # video.set(cv2.CAP_PROP_POS_MSEC, 27 * 60 * 1000 + 14000)
         # video.set(cv2.CAP_PROP_POS_MSEC, 15000)
         while video.isOpened():
-            # ret = video.grab()
-            # if video.read():
-            # if cnt <= video.get(cv2.CAP_PROP_POS_MSEC) / (10 * 60) * 1000:
-            #     cnt = cnt + 1
-            # _, frame = video.retrieve()
             newFrame, frame = video.read()
             print(video.get(cv2.CAP_PROP_POS_MSEC) / 1000)
             if newFrame:
@@ -56,64 +51,31 @@ if __name__ == '__main__':
                     if file is None:
                         continue
                     matches, kpts1, kpts2, scores = g.match_pairs(frame, file, is_draw=False)
-                    homo_checker.process(matches)
+                    homo_checker.process(matches, scores)
 
                     print('\r', matches.shape, file, end='')
 
                 homo_checker.add_current_frame_and_start_new()
                 print("")
             print(homo_checker.get_homography_matrix())
-            # print(type(matches))
-            # print(numpy.shape(matches))
-            # print(matches)
-            # h, mask = pydegensac.findHomography(matches[:, 2:4], matches[:, :2], 0.4)
-            # print(homog)
-            # for pixel in kpts1:
-            #     frame[pixel[1].astype(int), pixel[0].astype(int)] = [255, 0, 0]
-            # max_index = numpy.argmax(scores)
-            # max_val = kpts2[max_index]
-            # max_val = numpy.array([0, 0, 1])
-
-            # ref_corners = numpy.array([[0, 0, 1], [w, 0, 1], [0, h, 1],
-            #                            [w, h, 1]]).T  # Use actual width (w) and height (h) of reference image
-            # transformed_corners = numpy.linalg.inv(homog) @ ref_corners
-            # transformed_corners = transformed_corners / transformed_corners[2, :]
-            # transformed_corners = transformed_corners[:2, :].T
-            # print(transformed_corners)
-            # pts = numpy.array(transformed_corners, numpy.int32)
-            # frame = cv2.polylines(frame, [pts], False, (0, 255, 255))
-            # plt.imshow(frame)
-            # Mark the transformed corners on the frame
-            # for corner in transformed_corners:
-            #     if 0 <= corner[0] < frame.shape[1] and 0 <= corner[1] < frame.shape[0]:
-            # frame[tuple(corner.astype(int))] = [0, 0, 255]
-            # frame = cv2.circle(frame, tuple(corner.astype(int)), 5,
-            #                    (0, 0, 255), -1)
-            # plt.imshow(frame)
-            # cv2.imwrite(f"./data/imgs/{cnt}.png", frame)
             print(pos)
             pos = pos + 150 * 60 * 1000 / 20
             if pos > 150 * 60 * 1000:
                 break
             print(video.set(cv2.CAP_PROP_POS_MSEC, pos))
-        # else:
-        #     break
-        # homog = numpy.matrix(
-        #     '2.03867778e+00  4.67787567e-01  5.99155938e+02; -6.71261747e-03  1.75355807e+00  1.59732382e+01; 3.49173534e-04 4.41266821e-04 1.00000000e+00')
-        for v in range(20):
+        pos = 0
+        for v in range(30):
             # video.set(cv2.CAP_PROP_POS_AVI_RATIO, v * random.random() / 20)
-            pos = pos + 150 * 60 * 1000 / 30
+            pos = pos + (150 * 60 * 1000) / 30
             if pos > 150 * 60 * 1000:
-                break
+                pass
+                # break
             print(video.set(cv2.CAP_PROP_POS_MSEC, pos))
-            # read = False
-            # while not read:
             pts = numpy.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
             _, frame = video.read()
-            # print(homog.shape)
             dst = cv2.perspectiveTransform(pts, homo_checker.get_homography_matrix())
             perspectiveM = cv2.getPerspectiveTransform(numpy.float32(dst), pts)
             newFrame = cv2.warpPerspective(frame, perspectiveM, (w, h))
-            # frame = frame @ homo_checker.get_homography_matrix()
+            print("perspective ", perspectiveM)
             cv2.imwrite(f"./data/imgs/{v}.png", newFrame)
         video.release()
