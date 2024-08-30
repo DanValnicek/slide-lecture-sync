@@ -1,9 +1,8 @@
-
-import numpy as np
-from skimage.feature import peak_local_max
-import torch
-import torch.nn.functional as F
 import cv2
+import numpy as np
+import torch
+from skimage.feature import peak_local_max
+
 
 def arange_like(x, dim: int):
     return x.new_ones(x.shape[dim]).cumsum(0) - 1  # traceable in 1.1
@@ -18,9 +17,8 @@ def log_sinkhorn_iterations(Z: torch.Tensor, log_mu: torch.Tensor,
         v = log_nu - torch.logsumexp(Z + u.unsqueeze(2), dim=1)
     return Z + u.unsqueeze(2) + v.unsqueeze(1)
 
+
 def get_mask(img_ori):
-
-
     b, g, r = cv2.split(img_ori)
 
     # 对红色通道图进行CLAHE 处理
@@ -37,6 +35,8 @@ def get_mask(img_ori):
     # 对 ROI 区进行腐蚀运算
     img_erode = cv2.erode(img_threshold, kernel, iterations=1)
     return img_erode
+
+
 def log_optimal_transport(scores: torch.Tensor, alpha: torch.Tensor,
                           iters: int) -> torch.Tensor:
     """ Perform Differentiable Optimal Transport in Log-space for stability"""
@@ -75,12 +75,12 @@ def generate_window(keypoints_list, img_size, window_size=11, scale=2):
     windows[:, :, 0] = x_val
     windows[:, :, 1] = y_val
     windows = windows - windows[window_size // 2, window_size // 2][0]
-    windows = windows.unsqueeze(0)*scale
+    windows = windows.unsqueeze(0) * scale
     new_keypoints_list, masks_list = [], []
     for b, kps in enumerate(keypoints_list):
         kps = kps.unsqueeze(1).unsqueeze(1).repeat([1, window_size, window_size, 1])
         kps = kps + windows
-        kps = kps.view(-1, window_size*window_size, 2)
+        kps = kps.view(-1, window_size * window_size, 2)
         check_out = (kps[:, :, 0] < 0) | (kps[:, :, 1] < 0) | (kps[:, :, 0] >= w) | (kps[:, :, 1] >= h)
         mask = torch.ones_like(check_out).to(check_out.device)
         mask[check_out] = 0
@@ -98,12 +98,14 @@ def remove_borders(keypoints, border: int, height: int, width: int):
     mask = mask_h & mask_w
     return keypoints[mask]
 
+
 def torch_nms(scores, nms_radius: int):
     """ Fast Non-maximum suppression to remove nearby points """
     assert (nms_radius >= 0)
 
     size = nms_radius * 2 + 1
     avg_size = 2
+
     def max_pool(x):
         return torch.nn.functional.max_pool2d(
             x, kernel_size=size, stride=1, padding=nms_radius)
@@ -122,6 +124,7 @@ def torch_nms(scores, nms_radius: int):
 
     return torch.where(mask, scores, zeros)
 
+
 def non_max_suppression(image, size_filter, proba):
     non_max = peak_local_max(image, min_distance=size_filter, threshold_abs=proba, exclude_border=True, indices=False)
     kp = np.where(non_max > 0)
@@ -134,14 +137,16 @@ def non_max_suppression(image, size_filter, proba):
                 window[:, :] = 0
     return non_max
 
+
 def get_map_keypoints(h, w, scale=8):
     xs = torch.linspace(0, w // scale - 1, steps=w // scale)
     ys = torch.linspace(0, h // scale - 1, steps=h // scale)
 
-    ys, xs = torch.meshgrid(ys, xs)
+    ys, xs = torch.meshgrid(ys, xs, indexing="ij")
     keypoint = torch.cat((xs.reshape(-1, 1), ys.reshape(-1, 1)), -1).long()
     keypoint = keypoint * scale
     return keypoint.long()
+
 
 def simple_nms(scores, nms_radius: int):
     """ Fast Non-maximum suppression to remove nearby points """
@@ -149,6 +154,7 @@ def simple_nms(scores, nms_radius: int):
 
     size = nms_radius * 2 + 1
     avg_size = 2
+
     def max_pool(x):
         return torch.nn.functional.max_pool2d(
             x, kernel_size=size, stride=1, padding=nms_radius)
@@ -163,6 +169,7 @@ def simple_nms(scores, nms_radius: int):
 
     return torch.where(mask, scores, zeros)
 
+
 def sample_descriptors(keypoints_list, descriptor_maps, s: int = 8, norm=True) -> list:
     def sample_one(keypoints, descriptor):
         b, c, h, w = descriptor.shape
@@ -173,7 +180,7 @@ def sample_descriptors(keypoints_list, descriptor_maps, s: int = 8, norm=True) -
 
         if len(keypoints.shape) == 4:
             n, l, w, _ = keypoints.shape
-            keypoints = keypoints.reshape(n, l*w, 2)
+            keypoints = keypoints.reshape(n, l * w, 2)
 
             descriptor = descriptor[0, :, keypoints[0, :, 1].long(),
                          keypoints[0, :, 0].long()]
@@ -207,6 +214,7 @@ def sample_descriptors(keypoints_list, descriptor_maps, s: int = 8, norm=True) -
 
     return descriptors
 
+
 def datasets_normalized(images):
     # images_normalized = np.empty(images.shape)
     images_std = np.std(images)
@@ -218,6 +226,7 @@ def datasets_normalized(images):
 
     return images_normalized
 
+
 def adjust_gamma(images, gamma=1.0):
     invGamma = 1.0 / gamma
     table = np.array([((i / 255.0) ** invGamma) * 255
@@ -228,6 +237,7 @@ def adjust_gamma(images, gamma=1.0):
 
     return new_images
 
+
 def clahe_equalized(images):
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     images_equalized = np.empty(images.shape)
@@ -235,6 +245,8 @@ def clahe_equalized(images):
                                                   dtype=np.uint8))
 
     return images_equalized
+
+
 def pre_processing(data):
     """ Enhance retinal images """
     train_imgs = datasets_normalized(data)
