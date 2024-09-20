@@ -1,4 +1,4 @@
-ame: BP_Geoformer
+name: BP_Geoformer
 channels:
   - defaults
   - conda-forge
