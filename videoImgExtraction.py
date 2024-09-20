@@ -13,6 +13,7 @@ from inference import GeoFormer
 
 logger = logging.getLogger(__name__)
 
+# TODO: split code into argparser, homography finder, image matcher
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract images from video')
     parser.add_argument('--video', '-v', type=str)
