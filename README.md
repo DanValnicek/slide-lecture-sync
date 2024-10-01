@@ -4,7 +4,7 @@
 
 This is the official source code of our ICCV2023 paper: [Geometrized Transformer for Self-Supervised Homography Estimation](https://openaccess.thecvf.com/content/ICCV2023/html/Liu_Geometrized_Transformer_for_Self-Supervised_Homography_Estimation_ICCV_2023_paper.html).
 
-![illustration](./image/fig-model.jpg)
+![illustration](src/geoformer/image/fig-model.jpg)
 
 ## Environment
 We used Anaconda to setup a deep learning workspace that supports PyTorch. Run the following script to install all the required packages.
@@ -79,15 +79,15 @@ You may skip the training stage and use our provided models for homography estim
 
 Put the trained model geoformer.ckpt into `saved_ckpt/` folder.
 
-The model config can be found in [model/geo_config.py](model/geo_config.py)
+The model config can be found in [model/geo_config.py](src/geoformer/model/geo_config.py)
 
 ## Code
 
 ### Training 
 
 Before training GeoFormer,
-the parameters of the dataset can be modified in these two files. [train_config/homo_trainval_640.py](train_config/homo_trainval_640.py) file or [train_config/megadepth_trainval_640.py](train_config/megadepth_trainval_640.py) file 
-And the training hyperparameters are adjusted here [train_config/loftr_ds_dense.py](train_config/loftr_ds_dense.py).
+the parameters of the dataset can be modified in these two files. [train_config/homo_trainval_640.py](src/geoformer/train_config/homo_trainval_640.py) file or [train_config/megadepth_trainval_640.py](src/geoformer/train_config/megadepth_trainval_640.py) file 
+And the training hyperparameters are adjusted here [train_config/loftr_ds_dense.py](src/geoformer/train_config/loftr_ds_dense.py).
 
 
 ```
@@ -103,7 +103,7 @@ python -m lightning/train_homo_geoformer
 Our evaluation code is implemented based on the foundation of this benchmark.
 + [immatch](https://github.com/GrumpyZhou/image-matching-toolbox/tree/main/immatch)
 
-The [eval_Hpatches.py](eval_Hpatches.py) code shows how homography estimation is performed on the Hpatches dataset.
+The [eval_Hpatches.py](src/geoformer/eval_Hpatches.py) code shows how homography estimation is performed on the Hpatches dataset.
 ```
 python eval_Hpatches.py
 ```
@@ -128,7 +128,7 @@ python eval_ISC.py
 ---
 
 #### One Pair Inference
-If you just want to input one pair and obtain the matching results, you can just run the infer code [inference.py](inference.py).
+If you just want to input one pair and obtain the matching results, you can just run the infer code [inference.py](src/geoformer/inference.py).
 ## Citations
 If you find this repository useful, please consider citing:
 ```

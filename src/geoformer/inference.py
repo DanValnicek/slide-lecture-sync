@@ -1,21 +1,21 @@
-from argparse import Namespace
+from pathlib import Path
 
-import numpy
-import pydegensac
-import torch
-import numpy as np
 import cv2
+import numpy
+import numpy as np
+import torch
 from torchvision import transforms
 
-from model.loftr_src.loftr.utils.cvpr_ds_config import default_cfg
-from model.full_model import GeoFormer as GeoFormer_
+from .eval_tool.immatch.utils.data_io import load_gray_scale_tensor_cv, resize_im
+# from eval_tool.immatch.utils.data_io import load_gray_scale_tensor_cv, resize_im
+from .model.full_model import GeoFormer as GeoFormer_
+from .model.geo_config import default_cfg as geoformer_cfg
+from .model.loftr_src.loftr.utils.cvpr_ds_config import default_cfg
 
-from eval_tool.immatch.utils.data_io import load_gray_scale_tensor_cv, resize_im
-from model.geo_config import default_cfg as geoformer_cfg
 
-
-class GeoFormer():
-    def __init__(self, imsize, match_threshold, no_match_upscale=False, ckpt=None, device='cuda'):
+class GeoFormer:
+    def __init__(self, imsize, match_threshold, no_match_upscale=False,
+                 ckpt: Path = Path(__file__).parent / 'saved_ckpt' / 'geoformer.ckpt', device='cuda'):
 
         self.device = device
         self.imsize = imsize
@@ -34,7 +34,7 @@ class GeoFormer():
         self.model = self.model.eval().to(self.device)
 
         # Name the method
-        self.ckpt_name = ckpt.split('/')[-1].split('.')[0]
+        self.ckpt_name = ckpt.name
         self.name = f'GeoFormer_{self.ckpt_name}'
         if self.no_match_upscale:
             self.name += '_noms'
@@ -112,23 +112,3 @@ class GeoFormer():
             self.change_deivce(tmp_device)
 
         return matches, kpts1, kpts2, scores
-
-#
-# g = GeoFormer(640, 0.2, no_match_upscale=False, ckpt='saved_ckpt/geoformer.ckpt', device='cuda')
-# # print(g.match_pairs('./data/Screenshot1.png', './data/img.png', is_draw=True)[3])
-# matches, kpts1, kpts2, scores = g.match_pairs('./data/img_1.png', './data/img.png', is_draw=True)
-# print("scores: ", scores)
-# print("matches: ", matches)
-# print("kpts1: ", kpts1)
-# print("kpts2: ", kpts2)
-# indices = np.argpartition(scores, -4)[-4:]
-# print("top 4 indices: ", indices)
-# print("top 4 scores: ", scores[indices])
-# print("top 4 matches: ", matches[indices])
-#
-# h, mask = pydegensac.findHomography(matches[:, :2], matches[:, 2:4], 5.0)
-# # h, mask = cv2.findHomography(matches[:, :2], matches[:, 2:4], method=cv2.RANSAC, ransacReprojThreshold=5.0)
-#
-# print("Homography: ")
-# print(h)
-# print("Confidence: ", mask)
