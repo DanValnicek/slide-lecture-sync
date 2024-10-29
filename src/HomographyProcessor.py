@@ -90,8 +90,8 @@ class HomographyProcessor:
                     mask, goodMatches = self.process(matches, kp1, kp2)
                     print('\r', len(matches), " slide n:", img.get_page_number(), end='')
                     if type(self.get_homography_matrix()) is type(np.array) and self.get_homography_matrix().shape == (
-                    3, 3) and not numpy.array_equal(good_homog,
-                                                    self.get_homography_matrix()):
+                            3, 3) and not numpy.array_equal(good_homog,
+                                                            self.get_homography_matrix()):
                         dst = cv2.perspectiveTransform(
                             numpy.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2),
                             self.get_homography_matrix())
