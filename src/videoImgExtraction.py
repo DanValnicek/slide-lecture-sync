@@ -15,34 +15,6 @@ from src.Presentation import Presentation
 logger = logging.getLogger(__name__)
 
 
-def create_training_keypoint_set(presentation: Presentation):
-    matcher = cv2.SIFT.create()
-    descriptors = None
-    slide_descriptor_last_idx = []
-    for slide in presentation.slides:
-        kp, desc = matcher.detectAndCompute(numpy.array(slide.image), None)
-        if descriptors is None:
-            descriptors = desc
-        else:
-            descriptors = np.concatenate((descriptors, desc), axis=0)
-        slide_descriptor_last_idx.append(len(descriptors))
-    return descriptors, slide_descriptor_last_idx
-
-
-def matched_slide(train_descriptors, indexes_of_slides, presentation: Presentation, frame) -> (int, int):
-    matcher = cv2.SIFT.create()
-    kp, desc = matcher.detectAndCompute(frame, None)
-    bfm = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5}, {"checks": 50})
-    matches = bfm.knnMatch(desc, train_descriptors, k=2)
-    instance_cnt = dict()
-    for m, n in matches:
-        if m.distance < 0.7 * n.distance:
-            index = bisect(indexes_of_slides, m.trainIdx)
-            instance_cnt[index] = instance_cnt.get(index, 0) + 1
-
-    return max(instance_cnt, key=instance_cnt.get), max(instance_cnt.values()), len(instance_cnt)
-
-
 # TODO: split code into argparser, homography finder, image matcher
 if __name__ == '__main__':
     homo_checker = HomographyProcessor()
