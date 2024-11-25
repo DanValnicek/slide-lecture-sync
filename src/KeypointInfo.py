@@ -1,10 +1,15 @@
+import numpy as np
+
 from src.Presentation import ImageDecorator
 
 
 class KeypointInfo(ImageDecorator):
-    def __init__(self, img, keypoints):
+    keypoints: np.ndarray
+    descriptors: np.ndarray
+    def __init__(self, img, keypoints, descriptors):
         super().__init__(img)
         self.keypoints = keypoints
+        self.descriptors = descriptors
 
     def get_keypoints(self):
         return self.keypoints
