@@ -21,6 +21,7 @@ if __name__ == '__main__':
     #     cv2.imwrite(f"./data/imgs/{i}-slide.png", cv2.cvtColor(numpy.array(slide.image), cv2.COLOR_RGB2BGR))
     w, h = presentation.slides[0].image.size
     logger.debug("heigh: " + str(h) + "width: " + str(w))
+    print(CustomArgParser.get_args().video)
     video = cv2.VideoCapture(CustomArgParser.get_args().video, apiPreference=cv2.CAP_FFMPEG)
     # homo_checker.find_homography_in_video(video, presentation)
     video_duration = video.get(cv2.CAP_PROP_FRAME_COUNT) // video.get(cv2.CAP_PROP_FPS) * 1000
@@ -36,7 +37,7 @@ if __name__ == '__main__':
         got_img, frame = video.read()
         if not got_img:
             continue
-        hist = slide_matcher.matched_slide(frame)
+        hist, _ = slide_matcher.matched_slide(frame)
         sorted_hist = {key: hist[key] for key in sorted(hist)}
         print(sorted_hist)
         # slide_n, match_cnt, matched_slide_cnt = matched_slide(desc, idxs, presentation, frame)
@@ -45,6 +46,7 @@ if __name__ == '__main__':
         if hist:
             matching_plots.append(
                 (frame, presentation.slides[max(hist, key=hist.get)].image, sorted_hist))
+
         # matching_plots.append(
         #     (frame, presentation.slides[slide_n].image, timedelta(milliseconds=pos), slide_n, match_cnt,
         #      matched_slide_cnt))
