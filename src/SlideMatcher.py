@@ -82,9 +82,9 @@ class SlideMatcher:
         instance_cnt = defaultdict(list)
 
         for m, n in matches:
-            if m.distance < 0.7 * n.distance:
-                index = bisect(self.last_slide_kp_idx, m.trainIdx)
-                instance_cnt[index].append(m)
+            # if m.distance < 0.7 * n.distance:
+            index = bisect(self.last_slide_kp_idx, m.trainIdx)
+            instance_cnt[index].append(m)
 
         match_histogram = dict()
         best_slide = None

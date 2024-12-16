@@ -37,7 +37,7 @@ if __name__ == '__main__':
         got_img, frame = video.read()
         if not got_img:
             continue
-        hist, _ = slide_matcher.matched_slide(frame)
+        hist, _,_ = slide_matcher.matched_slide(frame)
         sorted_hist = {key: hist[key] for key in sorted(hist)}
         print(sorted_hist)
         # slide_n, match_cnt, matched_slide_cnt = matched_slide(desc, idxs, presentation, frame)

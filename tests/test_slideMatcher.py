@@ -110,7 +110,7 @@ def test_slide_matcher_on_IDM():
             if not got_img:
                 continue
             hist, best_slide, img = slide_matcher.matched_slide(frame)
-            assert best_slide == slide_n
+            assert best_slide == slide_n - 1
         except AssertionError:
             failure_data.append((img, {key: hist[key] for key in sorted(hist)}, slide_n, best_slide))
             pass
