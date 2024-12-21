@@ -54,4 +54,5 @@ class IDM_testing:
 
     def get_slide_with_timestamp(self) -> (int, float):
         for val in slides_with_timestamps:
-            yield val['label'], val['time'] / 1000
+            # subtract 1 to align with 0 based counting
+            yield val['label'] - 1, val['time'] / 1000

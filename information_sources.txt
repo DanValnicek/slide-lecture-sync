@@ -1,0 +1,1 @@
+Indexing for fast retrieval (SIFT with td-idf presentation) - https://www.cs.toronto.edu/~fidler/slides/2022Winter/CSC420/lecture14.pdf

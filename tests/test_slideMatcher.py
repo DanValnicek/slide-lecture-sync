@@ -13,6 +13,7 @@ from tests.IDM_slides import IDM_testing
 failure_data = []
 out_dir = os.path.join(pathlib.Path(__file__).parent.resolve(), "test_output/")
 
+
 def create_failure_report(output_path, failure_data, passed):
     # Initialize the PDF
     with PdfPages(output_path) as pdf:
@@ -49,6 +50,8 @@ def create_failure_report(output_path, failure_data, passed):
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)  # Close figure to free up memory
+
+
 # def create_failure_report(output_path, failure_data, passed):
 #     # cols = 2
 #     cols = 1
@@ -110,10 +113,10 @@ def test_slide_matcher_on_IDM():
             if not got_img:
                 continue
             hist, best_slide, img = slide_matcher.matched_slide(frame)
-            assert best_slide == slide_n - 1
+
+            assert best_slide == slide_n
         except AssertionError:
             failure_data.append((img, {key: hist[key] for key in sorted(hist)}, slide_n, best_slide))
-            pass
         except Exception as e:
             raise
     video.release()
