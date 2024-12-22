@@ -122,7 +122,7 @@ class SlideMatcher:
             kp, desc = (sift_detector.detectAndCompute(np.array(slide.image), None))
             self.descriptors.append(desc)
             self.keypoints += kp
-            self.last_slide_kp_idx.append(len(self.keypoints) + len(kp))
+            self.last_slide_kp_idx.append(len(self.keypoints))
 
         np.set_printoptions(threshold=sys.maxsize)
         self.descriptors = np.vstack(self.descriptors)
