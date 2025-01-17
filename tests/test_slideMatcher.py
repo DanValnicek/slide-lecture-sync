@@ -2,67 +2,81 @@ import os
 import pathlib
 
 import cv2
+import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from pypdf import PdfWriter
 
 from src.Presentation import Presentation
 from src.SlideMatcher import SlideMatcher
 from tests.IDM_slides import IDM_testing
 
-failure_data = []
 out_dir = os.path.join(pathlib.Path(__file__).parent.resolve(), "test_output/")
 
 
-def create_failure_report(output_path, failure_data, passed):
+class FailureInfo:
+    img: np.ndarray
+    match_score_chart: dict
+    expected_slide: int
+    matched_slide: int
+
+    def __init__(self, img, match_score_chart, expected_slide, matched_slide):
+        self.img = img
+        self.expected_slide = expected_slide
+        self.match_score_chart = match_score_chart
+        self.matched_slide = matched_slide
+
+
+def create_failure_report_single_match(output_path, failure_info: FailureInfo):
+    with PdfPages(output_path / f"slide{failure_info.expected_slide:03d}-report.pdf") as pdf:
+        fig, axes = plt.subplots(2, 1, figsize=(10, 10))  # Two rows: image + bar chart
+        axes = axes.ravel()  # Flatten axes for easier access
+
+        # First row: Display the image
+        if failure_info.img is None:
+            axes[0].set_title("Couldn't match")
+            axes[0].axis('off')  # Hide axes for no image
+        else:
+            axes[0].imshow(cv2.cvtColor(failure_info.img, cv2.COLOR_BGR2RGB), aspect='auto')
+            axes[0].set_title(f"Expected Slide: {failure_info.expected_slide} | Got: {failure_info.matched_slide}")
+            axes[0].axis('off')  # Hide axes for a cleaner look
+
+        # Second row: Bar chart
+        axes[1].bar(failure_info.match_score_chart.keys(), failure_info.match_score_chart.values(), align='center',
+                    tick_label=[str(key) for key in failure_info.match_score_chart.keys()])
+        axes[1].set_xlabel('Slide Number')
+        axes[1].set_ylabel('Match Valuation')
+        axes[1].set_title('Match Analysis')
+
+        # Save the current page
+        plt.tight_layout()
+        pdf.savefig(fig)
+        plt.close(fig)  # Close figure to free up memory
+
+
+def create_failure_report(output_path, tmp_out_dir, passed, total_test_count):
     # Initialize the PDF
-    with PdfPages(output_path) as pdf:
+    title_pdf_name = "_Title.pdf"  # underscore to make it first in sorted list
+    with PdfPages(tmp_out_dir / title_pdf_name) as pdf:
         # Add a title page with the summary
         plt.figure(figsize=(10, 5))
-        plt.text(0.5, 0.5, f"Count: {passed}\nFailed: {len(failure_data)}",
+        plt.text(0.5, 0.5, f"Count: {total_test_count}\nFailed: {total_test_count - passed}",
                  fontsize=20, ha='center', va='center', fontweight='bold')
         plt.axis('off')  # Remove axes for a clean title page
         pdf.savefig()
         plt.close()
-
-        # Generate a page for each failure
-        for img in failure_data:
-            fig, axes = plt.subplots(2, 1, figsize=(10, 10))  # Two rows: image + bar chart
-            axes = axes.ravel()  # Flatten axes for easier access
-
-            # First row: Display the image
-            if img[0] is None:
-                axes[0].set_title("Couldn't match")
-                axes[0].axis('off')  # Hide axes for no image
-            else:
-                axes[0].imshow(cv2.cvtColor(img[0], cv2.COLOR_BGR2RGB), aspect='auto')
-                axes[0].set_title(f"Expected Slide: {img[2]} | Got: {img[3]}")
-                axes[0].axis('off')  # Hide axes for a cleaner look
-
-            # Second row: Bar chart
-            axes[1].bar(img[1].keys(), img[1].values(), align='center',
-                        tick_label=[str(key) for key in img[1].keys()])
-            axes[1].set_xlabel('Slide Number')
-            axes[1].set_ylabel('Match Valuation')
-            axes[1].set_title('Match Analysis')
-
-            # Save the current page
-            plt.tight_layout()
-            pdf.savefig(fig)
-            plt.close(fig)  # Close figure to free up memory
+    pdfs_to_merge = [os.path.join(tmp_out_dir, pdf) for pdf in os.listdir(tmp_out_dir) if pdf.endswith(".pdf")]
+    pdfs_to_merge = sorted(pdfs_to_merge)
+    merger = PdfWriter()
+    for pdf in pdfs_to_merge:
+        merger.append(pdf)
+    with open(output_path + '.pdf', 'wb') as f:
+        merger.write(f)
 
 
-# @pytest.fixture(scope="session", autouse=True)
-# def generate_failure_report_at_end():
-#     """Generate a single PDF with all failures at the end of the test session."""
-#     yield  # Run tests first
-#     if failure_data:  # Only generate if there are failures
-#         output_path = os.path.join(os.getcwd(), "failure_report.pdf")
-#         create_failure_report(output_path, failure_data, passed)
-#         print(f"Failure report generated at: {output_path}")
-#
-#
 passed = 0
+total_test_cnt = 0
 
 
 @pytest.fixture(scope="module")
@@ -82,8 +96,16 @@ def setup_idm_test():
 
     video.release()
 
+
+@pytest.fixture(scope="module")
+def test_tmp_dir(tmp_path_factory, request):
+    tmp_dir = tmp_path_factory.mktemp("match_testing")
+    yield tmp_dir
+    create_failure_report(os.path.join(out_dir, request.module.__name__), tmp_dir, passed, total_test_cnt)
+
+
 @pytest.mark.parametrize("slide_n, stamp", IDM_testing().get_slide_with_timestamp())
-def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp):
+def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp, test_tmp_dir):
     """
     Parametrized test for slide matcher on IDM data.
     """
@@ -95,11 +117,20 @@ def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp):
         pytest.fail(f"Failed to read frame at timestamp {stamp} ms")
 
     hist, best_slide, img = slide_matcher.matched_slide(frame)
-
+    global total_test_cnt
+    total_test_cnt += 1
     try:
         assert best_slide == slide_n
+        global passed
+        passed += 1
     except AssertionError:
+        create_failure_report_single_match(
+            test_tmp_dir,
+            FailureInfo(
+                img,
+                {key: hist[key] for key in sorted(hist)},
+                slide_n,
+                best_slide
+            )
+        )
         raise
-        # failure_data.append((img, {key: hist[key] for key in sorted(hist)}, slide_n, best_slide))
-
-    assert not failure_data, f"Failures detected: {failure_data}"

@@ -30,11 +30,14 @@ class SlideMatcher:
     def eval_keypoints_by_distance(src_keypoint1: cv2.KeyPoint, dst_keypoint2: cv2.KeyPoint) -> float:
         """https://www.desmos.com/calculator/9ag3brj92d"""
         distance = np.linalg.norm(src_keypoint1 - dst_keypoint2)
-        if distance > 7.0:
+        # if distance > 7.0:
+        if distance > 14.0:
             return 0.0
-        return np.exp(-(distance ** 2) / (2 * 3 ** 2))
+        # return np.exp(-(distance ** 2) / (2 * 3 ** 2))
+        return np.exp(-(distance ** 2) / (2 * 6 ** 2))
 
     def matched_slide(self, frame) -> (int, int):
+        debug_info = dict()
         matcher = cv2.SIFT.create()
 
         kp, desc = matcher.detectAndCompute(frame, None)
@@ -45,17 +48,12 @@ class SlideMatcher:
         for m in matches:
             index = bisect(self.last_slide_kp_idx, m[0].trainIdx)
             instance_cnt[index].append(m[0])
-
         match_histogram = dict()
-        best_slide = None
-        max_eval_sum = -1
-        best_keypoints1 = []
-        best_keypoints2 = []
-
         for slide_idx, slide_matches in sorted(instance_cnt.items(), key=lambda x: len(x[1]), reverse=True):
             # kps_lower_idx = self.last_slide_kp_idx[slide_idx - 1] if slide_idx != 0 else 0
             # kps_upper_idx = self.last_slide_kp_idx[slide_idx]
-            if len(slide_matches) < 4:
+            if len(slide_matches) < 5:
+                del instance_cnt[slide_idx]
                 continue
 
             weights = [self.weights[m.trainIdx] for m in slide_matches]
@@ -68,36 +66,38 @@ class SlideMatcher:
 
             transformed_pts = cv2.perspectiveTransform(dst_pts, homog)
             eval_sum = 0.0
+            significant_kp = []
             for i in range(len(transformed_pts)):
                 # eval_sum += self.eval_keypoints_by_distance(src_pts[i], transformed_pts[i])
-                eval_sum += self.eval_keypoints_by_distance(src_pts[i], transformed_pts[i]) * weights[i]
+                if (match_score := self.eval_keypoints_by_distance(src_pts[i], transformed_pts[i]) * weights[i]) > 0.0:
+                    significant_kp.append(slide_matches[i])
+                    eval_sum += match_score
+            match_histogram[slide_idx] = eval_sum
 
-            # slide_desc_cnt = (self.last_slide_kp_idx[slide_idx] -
-            #                   (self.last_slide_kp_idx[slide_idx - 1] if slide_idx != 0 else 0))
-            # match_score = eval_sum / slide_desc_cnt
-            match_score = eval_sum
-            match_histogram[slide_idx] = match_score
-
-            if match_score > max_eval_sum:
-                max_eval_sum = match_score
-                best_slide = slide_idx
-                best_keypoints1 = [kp[m.queryIdx].pt for m in slide_matches]
-                best_keypoints2 = [self.keypoints[m.trainIdx].pt for m in slide_matches]
-        result_img = None
-        if best_slide is not None:
-            result_img = cv2.drawMatches(
-                frame,
-                [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints1],
-                np.array(self.presentation.slides[best_slide].image)[:, :, ::-1],
-                [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints2],
-                [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
-                None,
-                flags=cv2.DrawMatchesFlags_DEFAULT
-            )
+            if 'result_img' not in debug_info:
+                debug_info['result_img'] = []
+            if debug_info['result_img'] is [] or len(debug_info['result_img']) <= 3 or match_histogram.get(
+                    debug_info['result_img'][-1][0], 0) < eval_sum:
+                if len(debug_info['result_img']) == 3:
+                    debug_info['result_img'].pop(-1)
+                best_keypoints1 = [kp[m.queryIdx].pt for m in significant_kp]
+                best_keypoints2 = [self.keypoints[m.trainIdx].pt for m in significant_kp]
+                debug_info['result_img'].append((slide_idx, cv2.drawMatches(
+                    frame,
+                    [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints1],
+                    np.array(self.presentation.slides[slide_idx].image)[:, :, ::-1],
+                    [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints2],
+                    [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
+                    None,
+                    flags=cv2.DrawMatchesFlags_DEFAULT
+                )))
+                debug_info['result_img'] = sorted(debug_info['result_img'],
+                                                  key=lambda img_tup: match_histogram[img_tup[0]],
+                                                  reverse=True)
             # cv2.imwrite(f"./data/imgs/{best_slide}_w{frame_time}.png", result_img)
         if match_histogram == {}:
             return match_histogram, None, None
-        return match_histogram, max(match_histogram, key=match_histogram.get), result_img
+        return match_histogram, max(match_histogram, key=match_histogram.get), debug_info
 
     @staticmethod
     def count_same_descriptors(desc_query_results):
