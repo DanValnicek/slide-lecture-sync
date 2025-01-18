@@ -116,3 +116,12 @@ class HomographyProcessor:
             if pos > video_duration:
                 break
             video.set(cv2.CAP_PROP_POS_MSEC, pos)
+
+    @staticmethod
+    def reasonableHomography(homography, src_w, src_h, dst_w, dst_h) -> bool:
+        src_size = src_w * src_h
+        dst_size = dst_w * dst_h
+        min_scale_factor = dst_size / src_size
+        max_scale_factor = dst_size / (32 * 32)
+        sub_mat = homography[:2,:2]
+        return min_scale_factor < np.linalg.det(sub_mat) < max_scale_factor

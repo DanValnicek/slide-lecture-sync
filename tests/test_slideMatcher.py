@@ -2,7 +2,6 @@ import os
 import pathlib
 
 import cv2
-import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -16,13 +15,13 @@ out_dir = os.path.join(pathlib.Path(__file__).parent.resolve(), "test_output/")
 
 
 class FailureInfo:
-    img: np.ndarray
+    images: list
     match_score_chart: dict
     expected_slide: int
     matched_slide: int
 
-    def __init__(self, img, match_score_chart, expected_slide, matched_slide):
-        self.img = img
+    def __init__(self, matched_images, match_score_chart, expected_slide, matched_slide):
+        self.images = matched_images
         self.expected_slide = expected_slide
         self.match_score_chart = match_score_chart
         self.matched_slide = matched_slide
@@ -30,29 +29,38 @@ class FailureInfo:
 
 def create_failure_report_single_match(output_path, failure_info: FailureInfo):
     with PdfPages(output_path / f"slide{failure_info.expected_slide:03d}-report.pdf") as pdf:
-        fig, axes = plt.subplots(2, 1, figsize=(10, 10))  # Two rows: image + bar chart
-        axes = axes.ravel()  # Flatten axes for easier access
-
-        # First row: Display the image
-        if failure_info.img is None:
-            axes[0].set_title("Couldn't match")
-            axes[0].axis('off')  # Hide axes for no image
-        else:
-            axes[0].imshow(cv2.cvtColor(failure_info.img, cv2.COLOR_BGR2RGB), aspect='auto')
-            axes[0].set_title(f"Expected Slide: {failure_info.expected_slide} | Got: {failure_info.matched_slide}")
-            axes[0].axis('off')  # Hide axes for a cleaner look
-
-        # Second row: Bar chart
-        axes[1].bar(failure_info.match_score_chart.keys(), failure_info.match_score_chart.values(), align='center',
+        fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
+        axes.bar(failure_info.match_score_chart.keys(), failure_info.match_score_chart.values(), align='center',
                     tick_label=[str(key) for key in failure_info.match_score_chart.keys()])
-        axes[1].set_xlabel('Slide Number')
-        axes[1].set_ylabel('Match Valuation')
-        axes[1].set_title('Match Analysis')
+        axes.set_xlabel('Slide Number')
+        axes.set_ylabel('Match Valuation')
+        axes.set_title(f"Expected Slide: {failure_info.expected_slide} | Got: {failure_info.matched_slide}")
 
         # Save the current page
         plt.tight_layout()
-        pdf.savefig(fig)
+        pdf.savefig(fig, bbox_inches='tight')
         plt.close(fig)  # Close figure to free up memory
+
+        for data in failure_info.images:
+            fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
+            axes.imshow(cv2.cvtColor(data['visual'], cv2.COLOR_BGR2RGB), aspect='auto')
+            plt.tight_layout()
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close(fig)  # Close figure to free up memory
+            fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
+            axes.imshow(cv2.cvtColor(data['warped_image'], cv2.COLOR_BGR2RGB), aspect='auto')
+            plt.tight_layout()
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close(fig)  # Close figure to free up memory
+            fig, axes = plt.subplots(1, 1, figsize=(5, 5))  # Two rows: image + bar chart
+            axes.table(
+                cellText=data['homog'],
+                cellLoc='center',
+                loc='center'
+            )
+            plt.tight_layout()
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close(fig)  # Close figure to free up memory
 
 
 def create_failure_report(output_path, tmp_out_dir, passed, total_test_count):
@@ -116,7 +124,7 @@ def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp, test_tmp_dir):
     if not got_img:
         pytest.fail(f"Failed to read frame at timestamp {stamp} ms")
 
-    hist, best_slide, img = slide_matcher.matched_slide(frame)
+    hist, best_slide, debug_data = slide_matcher.matched_slide(frame)
     global total_test_cnt
     total_test_cnt += 1
     try:
@@ -127,7 +135,7 @@ def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp, test_tmp_dir):
         create_failure_report_single_match(
             test_tmp_dir,
             FailureInfo(
-                img,
+                debug_data,
                 {key: hist[key] for key in sorted(hist)},
                 slide_n,
                 best_slide

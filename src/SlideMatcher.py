@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 
 from src import Presentation
+from src.HomographyProcessor import HomographyProcessor
 
 
 class SlideMatcher:
@@ -37,7 +38,7 @@ class SlideMatcher:
         return np.exp(-(distance ** 2) / (2 * 6 ** 2))
 
     def matched_slide(self, frame) -> (int, int):
-        debug_info = dict()
+        debug_info = []
         matcher = cv2.SIFT.create()
 
         kp, desc = matcher.detectAndCompute(frame, None)
@@ -61,7 +62,9 @@ class SlideMatcher:
             dst_pts = np.float32([kp[m.queryIdx].pt for m in slide_matches]).reshape(-1, 1, 2)
 
             homog, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5.0)
-            if homog is None:
+            f_w, f_h = frame.shape[:2]
+            s_w, s_h = self.presentation.slides[slide_idx].image.size
+            if homog is None or not HomographyProcessor.reasonableHomography(homog, f_w, f_h, s_w, s_h):
                 continue
 
             transformed_pts = cv2.perspectiveTransform(dst_pts, homog)
@@ -74,15 +77,13 @@ class SlideMatcher:
                     eval_sum += match_score
             match_histogram[slide_idx] = eval_sum
 
-            if 'result_img' not in debug_info:
-                debug_info['result_img'] = []
-            if debug_info['result_img'] is [] or len(debug_info['result_img']) <= 3 or match_histogram.get(
-                    debug_info['result_img'][-1][0], 0) < eval_sum:
-                if len(debug_info['result_img']) == 3:
-                    debug_info['result_img'].pop(-1)
+            if debug_info is [] or len(debug_info) <= 3 or match_histogram.get(
+                    debug_info[-1]['matched_slide'], 0) < eval_sum:
+                if len(debug_info) == 3:
+                    debug_info.pop(-1)
                 best_keypoints1 = [kp[m.queryIdx].pt for m in significant_kp]
                 best_keypoints2 = [self.keypoints[m.trainIdx].pt for m in significant_kp]
-                debug_info['result_img'].append((slide_idx, cv2.drawMatches(
+                debug_info.append({'matched_slide': slide_idx, 'visual': cv2.drawMatches(
                     frame,
                     [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints1],
                     np.array(self.presentation.slides[slide_idx].image)[:, :, ::-1],
@@ -90,10 +91,11 @@ class SlideMatcher:
                     [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
                     None,
                     flags=cv2.DrawMatchesFlags_DEFAULT
-                )))
-                debug_info['result_img'] = sorted(debug_info['result_img'],
-                                                  key=lambda img_tup: match_histogram[img_tup[0]],
-                                                  reverse=True)
+                ), 'homog': homog, 'warped_image': cv2.warpPerspective(frame, homog, self.presentation.slides[
+                    slide_idx].image.size)})
+                debug_info = sorted(debug_info,
+                                    key=lambda img_tup: match_histogram[img_tup['matched_slide']],
+                                    reverse=True)
             # cv2.imwrite(f"./data/imgs/{best_slide}_w{frame_time}.png", result_img)
         if match_histogram == {}:
             return match_histogram, None, None
