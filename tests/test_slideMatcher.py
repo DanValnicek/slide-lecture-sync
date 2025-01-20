@@ -2,6 +2,7 @@ import os
 import pathlib
 
 import cv2
+import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -31,7 +32,7 @@ def create_failure_report_single_match(output_path, failure_info: FailureInfo):
     with PdfPages(output_path / f"slide{failure_info.expected_slide:03d}-report.pdf") as pdf:
         fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
         axes.bar(failure_info.match_score_chart.keys(), failure_info.match_score_chart.values(), align='center',
-                    tick_label=[str(key) for key in failure_info.match_score_chart.keys()])
+                 tick_label=[str(key) for key in failure_info.match_score_chart.keys()])
         axes.set_xlabel('Slide Number')
         axes.set_ylabel('Match Valuation')
         axes.set_title(f"Expected Slide: {failure_info.expected_slide} | Got: {failure_info.matched_slide}")
@@ -124,14 +125,18 @@ def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp, test_tmp_dir):
     if not got_img:
         pytest.fail(f"Failed to read frame at timestamp {stamp} ms")
 
-    hist, best_slide, debug_data = slide_matcher.matched_slide(frame)
+    hist, best_slide, debug_data = slide_matcher.matched_slide(frame,[])
     global total_test_cnt
     total_test_cnt += 1
     try:
         assert best_slide == slide_n
+        with open(out_dir + 'good_condition_numbers.csv', 'a') as f:
+            f.write(f"{debug_data[0]['matched_slide']},{np.linalg.cond(debug_data[0]['homog'][:2])}\n")
         global passed
         passed += 1
     except AssertionError:
+        with open(out_dir + 'bad_condition_numbers.csv', 'a') as f:
+            f.write(f"{debug_data[0]['matched_slide']},{np.linalg.cond(debug_data[0]['homog'][:2])}\n")
         create_failure_report_single_match(
             test_tmp_dir,
             FailureInfo(
