@@ -65,7 +65,7 @@ class SlideMatcher:
             src_pts = np.float32([self.keypoints[m.trainIdx].pt for m in slide_matches]).reshape(-1, 1, 2)
             dst_pts = np.float32([kp[m.queryIdx].pt for m in slide_matches]).reshape(-1, 1, 2)
 
-            homog, mask = cv2.findHomography(dst_pts, src_pts, cv2.RHO, 5.0)
+            homog, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5.0)
             f_w, f_h = frame.shape[:2]
             s_w, s_h = self.presentation.slides[slide_idx].image.size
             if homog is None or not HomographyProcessor.reasonableHomography(homog, f_w, f_h, s_w, s_h):
@@ -75,7 +75,7 @@ class SlideMatcher:
             eval_sum = 0.0
             significant_kp = []
             train_slide_offset = (self.last_slide_kp_idx[slide_idx - 1] if slide_idx > 0 else 0)
-            # query_vector = np.zeros(self.last_slide_kp_idx[slide_idx] - train_slide_offset)
+            slide_len = self.last_slide_kp_idx[slide_idx] - train_slide_offset
             q_tf_idf_vec = []
             valid_cnt = 0
             for i in range(len(transformed_pts)):
@@ -84,17 +84,18 @@ class SlideMatcher:
                         match_score := self.eval_keypoints_by_distance(src_pts[i], transformed_pts[i]) * db_tf_idf[
                             i]) > 0.0:
                     significant_kp.append(slide_matches[i])
-                    q_tf_idf_vec.append(1 / len(slide_matches) * db_idf[i])
+                    q_tf_idf_vec.append(db_idf[i])
                     valid_cnt += 1
                     # eval_sum += match_score
                 else:
                     q_tf_idf_vec.append(0.0)
-            if valid_cnt < 5:
+            if valid_cnt < 4:
                 del instance_cnt[slide_idx]
                 continue
-            # match_histogram[slide_idx] = eval_sum
+            match_histogram[slide_idx] = eval_sum
+            q_tf_idf_vec = [x / valid_cnt for x in q_tf_idf_vec]
             match_histogram[slide_idx] = np.dot(q_tf_idf_vec, db_tf_idf) / (
-                    np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[slide_idx])
+                    np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[slide_idx])  # * np.log10(slide_len)
 
             if (debug_info is not None
                     and (
@@ -190,7 +191,7 @@ class SlideMatcher:
             for i in range(0, len(slide_descriptors)):
                 same_in_frame = same_slide_same_counts.get(i, 0)
                 # td-idf weight from https://www.cs.toronto.edu/~fidler/slides/2022Winter/CSC420/lecture14.pdf#page=42
-                self.dataset_idf.append(np.log10((1 + slide_count) / (1 + df[i])))
+                self.dataset_idf.append(np.log2((slide_count) / (df[i])))
                 self.dataset_tf_idf[last_index + i] = (same_in_frame / n_in_frame) * self.dataset_idf[last_index + i]
             self.slide_tf_idf_norms.append(np.linalg.norm(self.dataset_tf_idf[last_index:idx]))
             last_index = idx

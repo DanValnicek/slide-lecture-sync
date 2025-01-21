@@ -124,19 +124,24 @@ def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp, test_tmp_dir):
     got_img, frame = video.read()
     if not got_img:
         pytest.fail(f"Failed to read frame at timestamp {stamp} ms")
-
+    # frame = cv2.imread("data/IDM/grafy1-01.png")
     hist, best_slide, debug_data = slide_matcher.matched_slide(frame,[])
     global total_test_cnt
     total_test_cnt += 1
     try:
         assert best_slide == slide_n
-        with open(out_dir + 'good_condition_numbers.csv', 'a') as f:
-            f.write(f"{debug_data[0]['matched_slide']},{np.linalg.cond(debug_data[0]['homog'][:2])}\n")
         global passed
         passed += 1
+        # create_failure_report_single_match(
+        #     test_tmp_dir,
+        #     FailureInfo(
+        #         debug_data,
+        #         {key: hist[key] for key in sorted(hist)},
+        #         slide_n,
+        #         best_slide
+        #     )
+        # )
     except AssertionError:
-        with open(out_dir + 'bad_condition_numbers.csv', 'a') as f:
-            f.write(f"{debug_data[0]['matched_slide']},{np.linalg.cond(debug_data[0]['homog'][:2])}\n")
         create_failure_report_single_match(
             test_tmp_dir,
             FailureInfo(
