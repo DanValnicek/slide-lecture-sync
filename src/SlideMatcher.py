@@ -92,8 +92,17 @@ class SlideMatcher:
             if valid_cnt < 4:
                 del instance_cnt[slide_idx]
                 continue
-            match_histogram[slide_idx] = eval_sum
-            q_tf_idf_vec = [x / valid_cnt for x in q_tf_idf_vec]
+
+            # warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
+            # kp2, desc2 = matcher.detectAndCompute(warped_img, None)
+            # matches = bfm.knnMatch(desc2, self.descriptors[train_slide_offset: self.last_slide_kp_idx[slide_idx]], k=1)
+            # db_tf_idf = [self.dataset_tf_idf[m.trainIdx] for m in matches]
+            # db_idf = [self.dataset_idf[m.trainIdx] for m in matches]
+            # src_pts = np.float32([self.keypoints[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+            # dst_pts = np.float32([kp[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+            # slide_len = self.last_slide_kp_idx[slide_idx] - train_slide_offset
+            # match_histogram[slide_idx] = eval_sum
+            # q_tf_idf_vec = [x / valid_cnt for x in q_tf_idf_vec]
             match_histogram[slide_idx] = np.dot(q_tf_idf_vec, db_tf_idf) / (
                     np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[slide_idx])  # * np.log10(slide_len)
 

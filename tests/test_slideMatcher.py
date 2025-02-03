@@ -1,18 +1,17 @@
 import os
-import pathlib
+from pathlib import Path
 
 import cv2
-import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from pypdf import PdfWriter
 
 from src.Presentation import Presentation
+from .providers import *
 from src.SlideMatcher import SlideMatcher
-from tests.IDM_slides import IDM_testing
 
-out_dir = os.path.join(pathlib.Path(__file__).parent.resolve(), "test_output/")
+out_dir = os.path.join(Path(__file__).parent.resolve(), "test_output/")
 
 
 class FailureInfo:
@@ -84,26 +83,28 @@ def create_failure_report(output_path, tmp_out_dir, passed, total_test_count):
         merger.write(f)
 
 
+data_path = Path(__file__).parent / Path('data')
+providers = [
+    IDMVideoProvider(),
+    CVATXMLProvider(data_path / 'IPK_test_imgs', data_path / 'annotations.xml',
+                    data_path / 'IPK2023-24L-07-MULTICAST.pdf')
+]
+
+
+def pytest_generate_tests(metafunc):
+    if "slide_matching_test" in metafunc.fixturenames:
+        test_cases = []
+        for provider in providers:
+            try:
+                test_cases.extend([(provider, case) for case in provider.test_cases()])
+            except Exception as e:
+                pytest.skip(f"Provider {type(provider).__name__} failed: {str(e)}")
+
+        metafunc.parametrize("slide_matching_test", test_cases)
+
+
 passed = 0
 total_test_cnt = 0
-
-
-@pytest.fixture(scope="module")
-def setup_idm_test():
-    """
-    Fixture to set up the necessary components for the IDM test.
-    """
-    test_data = IDM_testing()
-    presentation = Presentation(test_data.presentation_path)
-    video = cv2.VideoCapture(test_data.video_path)
-    assert video.isOpened()
-
-    slide_matcher = SlideMatcher(presentation)
-    slide_matcher.create_training_keypoint_set()
-
-    yield test_data, video, slide_matcher
-
-    video.release()
 
 
 @pytest.fixture(scope="module")
@@ -113,19 +114,23 @@ def test_tmp_dir(tmp_path_factory, request):
     create_failure_report(os.path.join(out_dir, request.module.__name__), tmp_dir, passed, total_test_cnt)
 
 
-@pytest.mark.parametrize("slide_n, stamp", IDM_testing().get_slide_with_timestamp())
-def test_slide_matcher_on_idm(setup_idm_test, slide_n, stamp, test_tmp_dir):
-    """
-    Parametrized test for slide matcher on IDM data.
-    """
-    test_data, video, slide_matcher = setup_idm_test
+slide_matcher = None
 
-    video.set(cv2.CAP_PROP_POS_MSEC, stamp)
-    got_img, frame = video.read()
-    if not got_img:
-        pytest.fail(f"Failed to read frame at timestamp {stamp} ms")
-    # frame = cv2.imread("data/IDM/grafy1-01.png")
-    hist, best_slide, debug_data = slide_matcher.matched_slide(frame,[])
+
+def setup_matcher(data_provider: DataProvider):
+    global slide_matcher
+    presentation_path = data_provider.presentation_path
+    if slide_matcher is None or slide_matcher[0] != presentation_path:
+        slide_matcher = (presentation_path, SlideMatcher(Presentation(presentation_path)))
+        slide_matcher[1].create_training_keypoint_set()
+    return slide_matcher[1]
+
+
+def test_slide_matcher(slide_matching_test):
+    provider, test = slide_matching_test
+    slide_matcher = setup_matcher(provider)
+    slide_n, frame = (provider.get_test_input(test))
+    hist, best_slide, debug_data = slide_matcher.matched_slide(frame, [])
     global total_test_cnt
     total_test_cnt += 1
     try:
