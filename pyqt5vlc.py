@@ -30,9 +30,9 @@ class VideoPlayer(QMainWindow):
         self.central_widget.setLayout(self.main_layout)
 
         # Debug Label (Shows the video file path)
-        self.debug_label = QLabel("No video loaded", self)
-        self.debug_label.setStyleSheet("color: red; font-size: 14px;")  # Styling for visibility
-        self.main_layout.addWidget(self.debug_label)
+        # self.debug_label = QLabel("No video loaded", self)
+        # self.debug_label.setStyleSheet("color: red; font-size: 14px;")  # Styling for visibility
+        # self.main_layout.addWidget(self.debug_label)
 
         # Video Widget
         self.video_widget = QWidget(self)
@@ -139,7 +139,7 @@ class VideoPlayer(QMainWindow):
         file_path = os.path.abspath(file_path)
 
         # Update the debug label to show the video path
-        self.debug_label.setText(f"Loaded: {file_path}")
+        # self.debug_label.setText(f"Loaded: {file_path}")
 
         print(f"Loading video: {file_path}")  # Console Debugging
 

@@ -92,6 +92,8 @@ class SlideMatcher:
             if valid_cnt < 4:
                 del instance_cnt[slide_idx]
                 continue
+            # match_histogram[slide_idx] = eval_sum
+            q_tf_idf_vec = [x / valid_cnt for x in q_tf_idf_vec]
 
             # warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
             # kp2, desc2 = matcher.detectAndCompute(warped_img, None)
@@ -104,7 +106,8 @@ class SlideMatcher:
             # match_histogram[slide_idx] = eval_sum
             # q_tf_idf_vec = [x / valid_cnt for x in q_tf_idf_vec]
             match_histogram[slide_idx] = np.dot(q_tf_idf_vec, db_tf_idf) / (
-                    np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[slide_idx])  # * np.log10(slide_len)
+                    np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[
+                slide_idx]) * (valid_cnt/slide_len)
 
             if (debug_info is not None
                     and (

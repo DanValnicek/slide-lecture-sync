@@ -126,7 +126,7 @@ def setup_matcher(data_provider: DataProvider):
     return slide_matcher[1]
 
 
-def test_slide_matcher(slide_matching_test):
+def test_slide_matcher(slide_matching_test, test_tmp_dir):
     provider, test = slide_matching_test
     slide_matcher = setup_matcher(provider)
     slide_n, frame = (provider.get_test_input(test))
@@ -137,6 +137,7 @@ def test_slide_matcher(slide_matching_test):
         assert best_slide == slide_n
         global passed
         passed += 1
+        cv2.imwrite("idk.png", debug_data[0]['visual'])
         # create_failure_report_single_match(
         #     test_tmp_dir,
         #     FailureInfo(

@@ -30,4 +30,4 @@ class CVATXMLProvider(DataProvider):
         return cases
 
     def get_test_input(self, test_identifier: tuple[int, str]) -> tuple[int, np.ndarray]:
-        return test_identifier[0], cv2.imread(test_identifier[1])
+        return test_identifier[0] - 1, cv2.imread(self.image_dir / test_identifier[1])

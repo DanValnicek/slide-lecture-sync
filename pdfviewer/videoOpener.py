@@ -16,9 +16,8 @@ class VideoOpener(QAction):
     @Slot()
     def on_triggered(self):
         print("opening video here")
-        self.setText("clicked")
         player = VideoPlayer()
         player.load_video(
-            r"C:\Users\danva\PycharmProjects\GeoFormer\data\videos\IDM_2023-11-07_1080p.mp4")  # Use raw string for Windows paths
+            r"../data/videos/IMS_2024-10-18_1080p.mp4")  # Use raw string for Windows paths
         player.show()
-        player.set_time(2105566)
+        player.set_time(4994000)
