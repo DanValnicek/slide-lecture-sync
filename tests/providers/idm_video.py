@@ -30,6 +30,6 @@ class IDMVideoProvider(DataProvider):
         self.video.set(cv2.CAP_PROP_POS_MSEC, test_identifier['time'] / 1000)
         success, frame = self.video.read()
         if success:
-            # subtract 1 to align with 0 based counting
+        # subtract 1 to align with 0 based counting
             return test_identifier['label'] - 1, frame
         raise ArgumentError('Invalid identifier!')

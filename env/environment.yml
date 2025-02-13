@@ -19,7 +19,6 @@ dependencies:
   - pthread-stubs
   - pypdf
   - pytest
-  - pytest-lazy-fixture
   - python
   - python-dateutil
   - python-tzdata
@@ -33,3 +32,4 @@ dependencies:
       - python-vlc
       - PyMuPDF
       - pyside6
+      - shapely

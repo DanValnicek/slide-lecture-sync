@@ -4,6 +4,7 @@ from datetime import timedelta
 import cv2
 import numpy
 import numpy as np
+from shapely.geometry import Polygon,box
 
 from src.Presentation import Presentation
 
@@ -123,5 +124,21 @@ class HomographyProcessor:
         dst_size = dst_w * dst_h
         min_scale_factor = dst_size / src_size
         max_scale_factor = dst_size / (32 * 32)
-        sub_mat = homography[:2,:2]
-        return min_scale_factor < np.linalg.det(sub_mat) < max_scale_factor
+        sub_mat = np.linalg.det(homography[:2, :2])
+        if not min_scale_factor * 0.9 < sub_mat <= 1.1 * max_scale_factor:
+            return False
+        transformed_pts = cv2.perspectiveTransform(
+            numpy.float32([[0, 0], [0, src_h - 1], [src_w - 1, src_h - 1], [src_w - 1, 0]]).reshape(-1, 1, 2),
+            homography)
+        transformed_pts = [(int(x[0][0]), int(x[0][1])) for x in transformed_pts]
+        transformed_polygon = Polygon(transformed_pts)
+        shrinking_k = 0.8
+        untouchable_rect = box(
+            dst_w * (1 - shrinking_k),
+            dst_h * (1 - shrinking_k),
+            dst_w * shrinking_k,
+            dst_h * shrinking_k
+        )
+        if not untouchable_rect.within(transformed_polygon):
+            return False
+        return True

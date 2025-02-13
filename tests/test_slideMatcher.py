@@ -61,6 +61,15 @@ def create_failure_report_single_match(output_path, failure_info: FailureInfo):
             plt.tight_layout()
             pdf.savefig(fig, bbox_inches='tight')
             plt.close(fig)  # Close figure to free up memory
+            fig, axes = plt.subplots(1, 1, figsize=(5, 5))  # Two rows: image + bar chart
+            axes.table(
+                cellText=data['homog2'],
+                cellLoc='center',
+                loc='center'
+            )
+            plt.tight_layout()
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close(fig)  # Close figure to free up memory
 
 
 def create_failure_report(output_path, tmp_out_dir, passed, total_test_count):
@@ -137,7 +146,7 @@ def test_slide_matcher(slide_matching_test, test_tmp_dir):
         assert best_slide == slide_n
         global passed
         passed += 1
-        cv2.imwrite("idk.png", debug_data[0]['visual'])
+        # cv2.imwrite("idk.png", debug_data[0]['visual'])
         # create_failure_report_single_match(
         #     test_tmp_dir,
         #     FailureInfo(
