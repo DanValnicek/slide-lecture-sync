@@ -48,7 +48,7 @@ def create_failure_report_single_match(output_path, failure_info: FailureInfo):
             pdf.savefig(fig, bbox_inches='tight')
             plt.close(fig)  # Close figure to free up memory
             fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
-            axes.imshow(cv2.cvtColor(data['warped_image'], cv2.COLOR_BGR2RGB), aspect='auto')
+            axes.imshow(data['warped_image'], aspect='auto')
             plt.tight_layout()
             pdf.savefig(fig, bbox_inches='tight')
             plt.close(fig)  # Close figure to free up memory
@@ -61,15 +61,15 @@ def create_failure_report_single_match(output_path, failure_info: FailureInfo):
             plt.tight_layout()
             pdf.savefig(fig, bbox_inches='tight')
             plt.close(fig)  # Close figure to free up memory
-            fig, axes = plt.subplots(1, 1, figsize=(5, 5))  # Two rows: image + bar chart
-            axes.table(
-                cellText=data['homog2'],
-                cellLoc='center',
-                loc='center'
-            )
-            plt.tight_layout()
-            pdf.savefig(fig, bbox_inches='tight')
-            plt.close(fig)  # Close figure to free up memory
+            # fig, axes = plt.subplots(1, 1, figsize=(5, 5))  # Two rows: image + bar chart
+            # axes.table(
+            #     cellText=data['homog2'],
+            #     cellLoc='center',
+            #     loc='center'
+            # )
+            # plt.tight_layout()
+            # pdf.savefig(fig, bbox_inches='tight')
+            # plt.close(fig)  # Close figure to free up memory
 
 
 def create_failure_report(output_path, tmp_out_dir, passed, total_test_count):

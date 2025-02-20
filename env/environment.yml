@@ -33,3 +33,4 @@ dependencies:
       - PyMuPDF
       - pyside6
       - shapely
+      - videohash2
