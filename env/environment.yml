@@ -25,6 +25,7 @@ dependencies:
   - python_abi
   - pytz
   - qtpy
+  - scikit-learn
   - pip:
       - opencv-contrib-python
       - opencv-python
