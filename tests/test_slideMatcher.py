@@ -139,7 +139,7 @@ def test_slide_matcher(slide_matching_test, test_tmp_dir):
     provider, test = slide_matching_test
     slide_matcher = setup_matcher(provider)
     slide_n, frame = (provider.get_test_input(test))
-    hist, best_slide, debug_data = slide_matcher.matched_slide(frame, [])
+    hist, best_slide, debug_data, _ = slide_matcher.matched_slide(frame, [])
     global total_test_cnt
     total_test_cnt += 1
     try:

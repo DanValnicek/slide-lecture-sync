@@ -33,6 +33,7 @@ if __name__ == '__main__':
     matching_plots = []
     videoStats = VideoInfo(CustomArgParser.get_args().pdf, CustomArgParser.get_args().video)
 
+    optimization_mask = None
     while pos < video_duration:
         start_time = datetime.now()
         pos += 1000
@@ -43,8 +44,9 @@ if __name__ == '__main__':
         got_img, frame = video.read()
         if not got_img:
             continue
-        # frame = cv2.resize(frame, None, fx=720 / frame.shape[0], fy=720 / frame.shape[0])
-        hist, slide_id, _ = slide_matcher.matched_slide(frame)
+        frame = cv2.resize(frame, None, fx=720 / frame.shape[0], fy=720 / frame.shape[0])
+        hist, slide_id, _, mask = slide_matcher.matched_slide(frame, mask=optimization_mask)
+        optimization_mask = mask
         videoStats.add_mapping_continuous(slide_id, pos)
         # sorted_hist = {key: hist[key] for key in sorted(hist)}
         print(videoStats.toJSON())

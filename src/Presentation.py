@@ -80,7 +80,7 @@ class PdfPresentation(Presentation):
     def __init__(self, path: Path):
         # Convert PDF to list of images (one per page)
         with tempfile.TemporaryDirectory() as temp_dir:
-            slides = convert_from_path(path, output_file='pdf', fmt="ppm", output_folder=temp_dir, size=(720, None))
+            slides = convert_from_path(path, output_file='pdf', fmt="ppm", output_folder=temp_dir, size=(480, None))
             self.slides = [PresentationSlide(img=img.copy(), page_number=i, presentation=self) for i, img in enumerate(slides)]
 
         logging.getLogger(__name__).debug("file count: " + str(len(self.slides)))

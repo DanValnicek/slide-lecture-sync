@@ -1,6 +1,7 @@
 import sys
 from bisect import bisect
 from collections import defaultdict
+from pickletools import uint8
 from typing import Sequence
 
 import cv2
@@ -19,7 +20,7 @@ class SlideMatcher:
     keypoints: Sequence[cv2.KeyPoint]
 
     def __init__(self, presentation: Presentation):
-        self.matcher = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5}, {"checks": 50})
+        self.matcher = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5})
         self.sift_detector = cv2.SIFT.create()
         self.flannIndex = None
         self.presentation = presentation
@@ -56,13 +57,30 @@ class SlideMatcher:
         pruned_scores = [val for val in id_scores if val[1] > max_match[1] * 0.9]
         return min(pruned_scores, key=lambda x: self.slideDescCnt(x[0]))[0]
 
-    def detect_and_sort_descriptors_from_frame(self, frame):
-        kp, desc = self.sift_detector.detectAndCompute(frame, None)
-        matches = self.flannIndex.knnSearch(desc, 1)
+    def detect_and_sort_descriptors_from_frame(self, frame, mask):
+        kp, desc = self.sift_detector.detectAndCompute(frame, mask)
+        matches = self.flannIndex.knnSearch(desc, 2)
         instance_cnt = defaultdict(list)
-        for i, m in enumerate(matches[0]):
-            index = self.descIdxToSlideIdx(m[0])
-            instance_cnt[index].append((self.keypoints[m[0]].pt, kp[i].pt))
+        for i, m in enumerate(zip(matches[0], matches[1])):
+            desc_indices = m[0]
+            desc_distance = m[1]
+            if desc_distance[0] > desc_distance[1] - 0.5:
+                maxResults = 10
+                while True:
+                    similar_matches = self.flannIndex.radiusSearch(np.array([self.descriptors[desc_indices[0]]]),
+                                                                   radius=0.5, maxResults=maxResults)
+                    if similar_matches[0] < maxResults:
+                        break
+                    maxResults += 10
+                for j in range(similar_matches[0]):
+                    descriptor_idx = similar_matches[1][0][j]
+                    index = self.descIdxToSlideIdx(descriptor_idx)
+                    instance_cnt[index].append((self.keypoints[descriptor_idx].pt, kp[i].pt))
+                continue
+            if desc_distance[0] < desc_distance[1] * 0.9:
+                descriptor_idx = desc_indices[0]
+                index = self.descIdxToSlideIdx(descriptor_idx)
+                instance_cnt[index].append((self.keypoints[descriptor_idx].pt, kp[i].pt))
         return instance_cnt
 
     @staticmethod
@@ -76,11 +94,12 @@ class SlideMatcher:
             return
         return homog
 
-    def matched_slide(self, frame, debug_info: list = None):
-        slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame)
+    def matched_slide(self, frame, debug_info: list = None, mask=None):
+        slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, mask)
         match_histogram = dict()
         picked_descriptors = []
         picked_slides = []
+        homographies = dict()
         for slide_idx, src_dst_kps in slides_keypoints.items():
             if len(src_dst_kps) < 5:
                 continue
@@ -91,6 +110,7 @@ class SlideMatcher:
             calc_result = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx)
             if calc_result is None:
                 continue
+            homographies[slide_idx] = homog
             picked_descriptors.append(calc_result)
             picked_slides.append(slide_idx)
             warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
@@ -123,10 +143,16 @@ class SlideMatcher:
                 # debug_info = sorted(debug_info,
                 #                     key=lambda img_tup: match_histogram[img_tup['matched_slide']],
                 #                     reverse=True)
-        match_histogram[self.pick_best_slide(picked_descriptors, picked_slides)] = 1
+        best_slide = self.pick_best_slide(picked_descriptors, picked_slides)
+        match_histogram[best_slide] = 1
+        if best_slide is None and mask is not None:
+            return self.matched_slide(frame, debug_info)
         if match_histogram == {}:
-            return match_histogram, None, None
-        return match_histogram, max(match_histogram, key=match_histogram.get), debug_info
+            return match_histogram, None, None, None
+        # added_margin = 1.1
+        # full_mask = np.ones((np.array(self.presentation.slides[best_slide].image.size) * added_margin).astype(int))
+        # mask = cv2.warpPerspective(full_mask, np.linalg.inv(homographies[best_slide]), frame.shape[:2]).astype(np.uint8)
+        return match_histogram, max(match_histogram, key=match_histogram.get), debug_info, mask
 
     def descIdxToSlideIdx(self, train_id):
         return bisect(self.last_slide_kp_idx, train_id)

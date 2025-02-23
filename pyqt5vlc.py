@@ -151,10 +151,8 @@ class VideoPlayer(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    video_path = os.path.normpath(sys.argv[1])
-    search = video_path.find('myscheme:\\')
-    if search != -1:
-        video_path = video_path[search + len('myscheme:\\'):]
+    # video_path = os.path.normpath(sys.argv[1])
+    video_path = None
     player = VideoPlayer()
     player.load_video(video_path)  # Use raw string for Windows paths
     player.show()
