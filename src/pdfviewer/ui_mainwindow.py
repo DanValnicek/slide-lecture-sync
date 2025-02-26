@@ -8,21 +8,15 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
-    QCursor, QFont, QFontDatabase, QGradient,
-    QIcon, QImage, QKeySequence, QLinearGradient,
-    QPainter, QPalette, QPixmap, QRadialGradient,
-    QTransform)
+from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
+                            QSize, Qt)
+from PySide6.QtGui import (QAction, QIcon)
 from PySide6.QtPdfWidgets import QPdfView
-from PySide6.QtWidgets import (QApplication, QHeaderView, QMainWindow, QMenu,
-    QMenuBar, QSizePolicy, QSplitter, QStatusBar,
-    QTabWidget, QToolBar, QTreeView, QVBoxLayout,
-    QWidget)
-import rc_resources
-from pdfviewer.videoOpener import VideoOpener
+from PySide6.QtWidgets import (QMenu,
+                               QMenuBar, QSizePolicy, QSplitter, QStatusBar,
+                               QTabWidget, QToolBar, QTreeView, QVBoxLayout,
+                               QWidget)
+from src.pdfviewer.videoOpener import VideoOpener
 
 
 class Ui_MainWindow(object):

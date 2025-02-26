@@ -2,20 +2,21 @@
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 from __future__ import annotations
 
+from src.videoPlayer.SeekBar import SeekBar
+from src.videoPlayer.VolumeSlider import VolumeSlider
+
 """PySide6 Multimedia player example"""
 
 import sys
 from PySide6.QtCore import QStandardPaths, Qt, Slot
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog,
-                               QMainWindow, QSlider, QStyle, QToolBar)
+                               QMainWindow, QSlider, QStyle, QToolBar, QVBoxLayout, QHBoxLayout, QWidget, QSizePolicy)
 from PySide6.QtMultimedia import (QAudioOutput, QMediaFormat,
                                   QMediaPlayer, QAudio)
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
-
 AVI = "video/x-msvideo"  # AVI
-
 
 MP4 = 'video/mp4'
 
@@ -41,18 +42,24 @@ class MainWindow(QMainWindow):
 
         self._player.errorOccurred.connect(self._player_error)
 
+        seek_bar_tool_bar = QToolBar()
+        self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, seek_bar_tool_bar)
+        self.addToolBarBreak(Qt.ToolBarArea.BottomToolBarArea)
+
+        self._seek_bar = SeekBar(self._player)
+        seek_bar_tool_bar.addWidget(self._seek_bar)
         tool_bar = QToolBar()
-        self.addToolBar(tool_bar)
+        self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, tool_bar)
+        tool_bar_lower_widget = QWidget()
+        tool_bar.addWidget(tool_bar_lower_widget)
 
         file_menu = self.menuBar().addMenu("&File")
         icon = QIcon.fromTheme(QIcon.ThemeIcon.DocumentOpen)
-        open_action = QAction(icon, "&Open...", self,
-                              shortcut=QKeySequence.Open, triggered=self.open)
+        open_action = QAction(icon, "&Open...", self, shortcut=QKeySequence.Open, triggered=self.open)
         file_menu.addAction(open_action)
         tool_bar.addAction(open_action)
         icon = QIcon.fromTheme(QIcon.ThemeIcon.ApplicationExit)
-        exit_action = QAction(icon, "E&xit", self,
-                              shortcut="Ctrl+Q", triggered=self.close)
+        exit_action = QAction(icon, "E&xit", self, shortcut="Ctrl+Q", triggered=self.close)
         file_menu.addAction(exit_action)
 
         play_menu = self.menuBar().addMenu("&Play")
@@ -60,7 +67,7 @@ class MainWindow(QMainWindow):
         icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackStart,
                                style.standardIcon(QStyle.SP_MediaPlay))
         self._play_action = tool_bar.addAction(icon, "Play")
-        self._play_action.triggered.connect(self._player.play)
+        self._play_action.triggered.connect(self.playPauseClicked)
         play_menu.addAction(self._play_action)
 
         icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaSkipBackward,
@@ -71,7 +78,7 @@ class MainWindow(QMainWindow):
 
         # icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackPause,
         #                        style.standardIcon(QStyle.SP_MediaPause))
-        # self._pause_action = tool_bar.addAction(icon, "Pause")
+        # self._pause_action = toolbar_lower.addAction(icon, "Pause")
         # self._pause_action.triggered.connect(self._player.pause)
         # play_menu.addAction(self._pause_action)
 
@@ -86,18 +93,10 @@ class MainWindow(QMainWindow):
         self._stop_action = tool_bar.addAction(icon, "Stop")
         self._stop_action.triggered.connect(self._ensure_stopped)
         play_menu.addAction(self._stop_action)
-
-        self._volume_slider = QSlider()
-        self._volume_slider.setOrientation(Qt.Orientation.Horizontal)
-        self._volume_slider.setMinimum(0)
-        self._volume_slider.setMaximum(100)
-        available_width = self.screen().availableGeometry().width()
-        self._volume_slider.setFixedWidth(available_width / 10)
-        self._volume_slider.setValue(self._audio_output.volume() * 100)
-        self._volume_slider.setTickInterval(10)
-        self._volume_slider.setTickPosition(QSlider.TicksBelow)
-        self._volume_slider.setToolTip("Volume")
-        self._volume_slider.valueChanged.connect(self.setVolume)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        tool_bar.addWidget(spacer)
+        self._volume_slider = VolumeSlider(self._audio_output)
         tool_bar.addWidget(self._volume_slider)
 
         icon = QIcon.fromTheme(QIcon.ThemeIcon.HelpAbout)
@@ -132,7 +131,7 @@ class MainWindow(QMainWindow):
 
         file_dialog.setMimeTypeFilters(self._mime_types)
 
-        default_mimetype = AVI if is_windows else MP4
+        default_mimetype = MP4
         if default_mimetype in self._mime_types:
             file_dialog.selectMimeTypeFilter(default_mimetype)
 
@@ -178,11 +177,12 @@ class MainWindow(QMainWindow):
     def update_buttons(self, state):
         media_count = len(self._playlist)
         # self._play_action.setEnabled(media_count > 0 and state != QMediaPlayer.PlayingState)
-        if state == QMediaPlayer.PlaybackState.PlayingState:
+        icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackPause,
+                               self.style().standardIcon(QStyle.SP_MediaPause))
+        if state == QMediaPlayer.PlaybackState.PausedState:
             icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackStart,
-                               self.style().standardIcon(QStyle.SP_MediaPlay))
-            self._play_action.setIcon(icon)
-            self._play_action.icon()
+                                   self.style().standardIcon(QStyle.SP_MediaPlay))
+        self._play_action.setIcon(icon)
         # self._pause_action.setEnabled(state == QMediaPlayer.PlayingState)
         self._stop_action.setEnabled(state != QMediaPlayer.StoppedState)
         self._previous_action.setEnabled(self._player.position() > 0)
