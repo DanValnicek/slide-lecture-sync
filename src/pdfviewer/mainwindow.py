@@ -44,11 +44,11 @@ class MainWindow(QMainWindow):
         self.m_zoomSelector.zoom_factor_changed.connect(self.ui.pdfView.setZoomFactor)
         self.m_zoomSelector.reset()
 
-        bookmark_model = QPdfBookmarkModel(self)
-        bookmark_model.setDocument(self.m_document)
-
-        self.ui.bookmarkView.setModel(bookmark_model)
-        self.ui.bookmarkView.activated.connect(self.bookmark_selected)
+        # bookmark_model = QPdfBookmarkModel(self)
+        # bookmark_model.setDocument(self.m_document)
+        #
+        # self.ui.bookmarkView.setModel(bookmark_model)
+        # self.ui.bookmarkView.activated.connect(self.bookmark_selected)
 
         self.ui.tabWidget.setTabEnabled(1, False)  # disable 'Pages' tab for now
 
