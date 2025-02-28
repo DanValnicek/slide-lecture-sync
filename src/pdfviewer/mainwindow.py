@@ -9,11 +9,10 @@ from PySide6.QtPdf import QPdfBookmarkModel, QPdfDocument
 from PySide6.QtPdfWidgets import QPdfView
 from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMessageBox,
                                QSpinBox)
-from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot
+from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot, Qt, QEvent
 
 from zoomselector import ZoomSelector
 from ui_mainwindow import Ui_MainWindow
-
 
 ZOOM_MULTIPLIER = math.sqrt(2.0)
 
@@ -27,6 +26,9 @@ class MainWindow(QMainWindow):
         self.m_pageSelector = QSpinBox(self)
         self.m_document = QPdfDocument(self)
         self.m_fileDialog = None
+
+        self.selected_start = None
+        self.selected_end = None
 
         self.ui.setupUi(self)
 
@@ -44,17 +46,41 @@ class MainWindow(QMainWindow):
         self.m_zoomSelector.zoom_factor_changed.connect(self.ui.pdfView.setZoomFactor)
         self.m_zoomSelector.reset()
 
-        # bookmark_model = QPdfBookmarkModel(self)
-        # bookmark_model.setDocument(self.m_document)
-        #
-        # self.ui.bookmarkView.setModel(bookmark_model)
-        # self.ui.bookmarkView.activated.connect(self.bookmark_selected)
-
         self.ui.tabWidget.setTabEnabled(1, False)  # disable 'Pages' tab for now
 
         self.ui.pdfView.setDocument(self.m_document)
 
         self.ui.pdfView.zoomFactorChanged.connect(self.m_zoomSelector.set_zoom_factor)
+
+    def eventFilter(self, obj, event):
+        """ Capture mouse events inside QLabel """
+        if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+            self.selected_start = event.pos()
+            return True  # Event handled
+
+        elif event.type() == QEvent.MouseMove and self.selected_start:
+            self.selected_end = event.pos()
+            self.text_selected(self.m_pageSelector.value(), self.selected_start, self.selected_end)
+            return True  # Event handled
+
+        elif event.type() == QEvent.MouseButtonRelease and self.selected_start and self.selected_end:
+            self.selected_start = self.selected_end = None  # Reset selection
+            return True  # Event handled
+
+        return super().eventFilter(obj, event)
+
+    def mousePressEvent(self, event):
+        print(event)
+        if event.button() == Qt.LeftButton:
+            self.selected_start = event.position()
+            print(self.selected_start)
+
+    def mouseMoveEvent(self, event):
+        if self.selected_start:
+            self.selected_end = event.position()
+            print(self.selected_start)
+            print(self.selected_end)
+            self.text_selected(self.m_pageSelector.value(), self.selected_start, self.selected_end)
 
     @Slot(QUrl)
     def open(self, doc_location):
@@ -68,14 +94,6 @@ class MainWindow(QMainWindow):
             message = f"{doc_location} is not a valid local file"
             print(message, file=sys.stderr)
             QMessageBox.critical(self, "Failed to open", message)
-
-    @Slot(QModelIndex)
-    def bookmark_selected(self, index):
-        if not index.isValid():
-            return
-        page = index.data(int(QPdfBookmarkModel.Role.Page))
-        zoom_level = index.data(int(QPdfBookmarkModel.Role.Level))
-        self.ui.pdfView.pageNavigator().jump(page, QPoint(), zoom_level)
 
     @Slot(int)
     def page_selected(self, page):
@@ -140,3 +158,11 @@ class MainWindow(QMainWindow):
     @Slot()
     def on_actionForward_triggered(self):
         self.ui.pdfView.pageNavigator().forward()
+
+    @Slot()
+    def text_selected(self, page_num, start_pt, end_pt):
+        if self.m_document.status() == QPdfDocument.Status.Ready:
+            selection = self.m_document.getSelection(page_num, start_pt, end_pt)
+            if selection:
+                text = selection.text()
+                print(text)
