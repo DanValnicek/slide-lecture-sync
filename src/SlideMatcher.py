@@ -20,6 +20,9 @@ class SlideMatcher:
     keypoints: Sequence[cv2.KeyPoint]
 
     def __init__(self, presentation: Presentation):
+        self.dataset_tf_idf = []
+        self.slide_tf_idf_norms = []
+        self.dataset_idf = []
         self.matcher = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5})
         self.sift_detector = cv2.SIFT.create()
         self.flannIndex = None
@@ -39,7 +42,8 @@ class SlideMatcher:
         src_pts2 = np.float32([dataset_keypoints[m[0].trainIdx].pt for m in matches]).reshape(-1, 1, 2)
         dst_pts2 = np.float32([kp2[m[0].queryIdx].pt for m in matches]).reshape(-1, 1, 2)
         homog2, mask2 = cv2.findHomography(dst_pts2, src_pts2, cv2.USAC_ACCURATE, 1.0)
-        descriptors = [slide_descriptors[i] for i, inlier in enumerate(mask2) if inlier]
+        descriptors = [self.slideIdxToDescRange(slide_idx)[0] + matches[i][0].trainIdx for i, inlier in enumerate(mask2)
+                       if inlier]
         return descriptors
 
     def pick_best_slide(self, matched_descriptors_from_all, slide_idxs):
@@ -57,6 +61,14 @@ class SlideMatcher:
         pruned_scores = [val for val in id_scores if val[1] > max_match[1] * 0.9]
         return min(pruned_scores, key=lambda x: self.slideDescCnt(x[0]))[0]
 
+    def find_all_similar_descriptors_indexes(self, desc_index):
+        maxResults = 10
+        similar_matches = self.flannIndex.radiusSearch(np.array([self.descriptors[desc_index]]), radius=0.5,
+                                                       maxResults=maxResults)
+        similar_matches = self.flannIndex.radiusSearch(np.array([self.descriptors[desc_index]]), radius=0.5,
+                                                           maxResults=similar_matches[0])
+        return similar_matches[1][0]
+
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
         kp, desc = self.sift_detector.detectAndCompute(frame, mask)
         matches = self.flannIndex.knnSearch(desc, 2)
@@ -65,15 +77,8 @@ class SlideMatcher:
             desc_indices = m[0]
             desc_distance = m[1]
             if desc_distance[0] > desc_distance[1] - 0.5:
-                maxResults = 10
-                while True:
-                    similar_matches = self.flannIndex.radiusSearch(np.array([self.descriptors[desc_indices[0]]]),
-                                                                   radius=0.5, maxResults=maxResults)
-                    if similar_matches[0] < maxResults:
-                        break
-                    maxResults += 10
-                for j in range(similar_matches[0]):
-                    descriptor_idx = similar_matches[1][0][j]
+                similar_matches = self.find_all_similar_descriptors_indexes(desc_indices[0])
+                for descriptor_idx in similar_matches:
                     index = self.descIdxToSlideIdx(descriptor_idx)
                     instance_cnt[index].append((self.keypoints[descriptor_idx].pt, kp[i].pt))
                 continue
@@ -110,8 +115,22 @@ class SlideMatcher:
             calc_result = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx)
             if calc_result is None:
                 continue
+
             homographies[slide_idx] = homog
             picked_descriptors.append(calc_result)
+            slide_desc_range = self.slideIdxToDescRange(slide_idx)
+            slide_desc_index = cv2.flann.Index(np.array([self.descriptors[d_idx] for d_idx in calc_result]),
+                                               {"algorithm": 1, "trees": 1})
+            # filtered_desc_count = len(picked_descriptors[0])
+
+            q_tf_idf_vec = np.zeros(slide_desc_range[1] - slide_desc_range[0], dtype=np.float32)
+            for d in picked_descriptors[0]:
+                same_q_cnt = slide_desc_index.radiusSearch(self.descriptors[d].reshape(1, -1), 0.5, 1)[0]
+                q_tf_idf_vec[d - slide_desc_range[0]] = (same_q_cnt / len(calc_result)) * self.dataset_idf[
+                    d - slide_desc_range[0]]
+
+            match_histogram[slide_idx] = np.dot(q_tf_idf_vec, self.dataset_tf_idf[slide_desc_range[0]:slide_desc_range[1]]) / (
+                    np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[slide_idx])
             picked_slides.append(slide_idx)
             warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
             if debug_info is not None and (debug_info is [] or len(debug_info) <= 3):
@@ -143,10 +162,10 @@ class SlideMatcher:
                 # debug_info = sorted(debug_info,
                 #                     key=lambda img_tup: match_histogram[img_tup['matched_slide']],
                 #                     reverse=True)
-        best_slide = self.pick_best_slide(picked_descriptors, picked_slides)
-        match_histogram[best_slide] = 1
-        if best_slide is None and mask is not None:
-            return self.matched_slide(frame, debug_info)
+        # best_slide = self.pick_best_slide(picked_descriptors, picked_slides)
+        # match_histogram[best_slide] = 1
+        # if best_slide is None and mask is not None:
+        #     return self.matched_slide(frame, debug_info)
         if match_histogram == {}:
             return match_histogram, None, None, None
         # added_margin = 1.1
@@ -184,3 +203,19 @@ class SlideMatcher:
         np.set_printoptions(threshold=sys.maxsize)
         self.descriptors = np.vstack(self.descriptors)
         self.flannIndex = cv2.flann.Index(self.descriptors, {"algorithm": 1, "trees": 5})
+        # calculate tf-idf
+        last_index = 0
+        descriptor_count = self.descriptors.shape[0]
+        self.dataset_tf_idf = np.ones(descriptor_count)
+        slide_count = len(self.presentation.slides)
+        for idx in self.last_slide_kp_idx:
+            n_in_frame = idx - last_index
+            for i in range(last_index, idx):
+                same_descriptors = self.find_all_similar_descriptors_indexes(i)
+                same_in_frame = sum(1 for x in same_descriptors if self.descIdxToSlideIdx(x) == idx)
+                df = len({self.descIdxToSlideIdx(x) for x in same_descriptors})
+                # td-idf weight from https://www.cs.toronto.edu/~fidler/slides/2022Winter/CSC420/lecture14.pdf#page=42
+                self.dataset_idf.append(np.log2(slide_count / df))
+                self.dataset_tf_idf[i] = (same_in_frame / n_in_frame) * self.dataset_idf[i]
+            self.slide_tf_idf_norms.append(np.linalg.norm(self.dataset_tf_idf[last_index:idx]))
+            last_index = idx
