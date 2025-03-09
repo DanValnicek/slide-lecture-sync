@@ -5,7 +5,8 @@ from __future__ import annotations
 import math
 import sys
 
-from PySide6.QtPdf import QPdfBookmarkModel, QPdfDocument
+from PyQt5.QtCore import QPointF
+from PySide6.QtPdf import QPdfBookmarkModel, QPdfDocument, QPdfSelection
 from PySide6.QtPdfWidgets import QPdfView
 from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMessageBox,
                                QSpinBox)
@@ -24,14 +25,12 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.m_zoomSelector = ZoomSelector(self)
         self.m_pageSelector = QSpinBox(self)
+        # self.m_PageSelection = QPdfSelection(self)
         self.m_document = QPdfDocument(self)
         self.m_fileDialog = None
 
-        self.selected_start = None
-        self.selected_end = None
-
         self.ui.setupUi(self)
-
+        self.ui.pdfView.selectionChanged.connect(self.text_selected)
         self.m_zoomSelector.setMaximumWidth(150)
         self.ui.mainToolBar.insertWidget(self.ui.actionZoom_In, self.m_zoomSelector)
 
@@ -52,36 +51,9 @@ class MainWindow(QMainWindow):
 
         self.ui.pdfView.zoomFactorChanged.connect(self.m_zoomSelector.set_zoom_factor)
 
-    def eventFilter(self, obj, event):
-        """ Capture mouse events inside QLabel """
-        if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-            self.selected_start = event.pos()
-            return True  # Event handled
-
-        elif event.type() == QEvent.MouseMove and self.selected_start:
-            self.selected_end = event.pos()
-            self.text_selected(self.m_pageSelector.value(), self.selected_start, self.selected_end)
-            return True  # Event handled
-
-        elif event.type() == QEvent.MouseButtonRelease and self.selected_start and self.selected_end:
-            self.selected_start = self.selected_end = None  # Reset selection
-            return True  # Event handled
-
-        return super().eventFilter(obj, event)
-
-    def mousePressEvent(self, event):
-        print(event)
-        if event.button() == Qt.LeftButton:
-            self.selected_start = event.position()
-            print(self.selected_start)
-
-    def mouseMoveEvent(self, event):
-        if self.selected_start:
-            self.selected_end = event.position()
-            print(self.selected_start)
-            print(self.selected_end)
-            self.text_selected(self.m_pageSelector.value(), self.selected_start, self.selected_end)
-
+    # @Slot()
+    # # def text_selection_made(self, page:int,start_pos:QPointF,end_pos:QPointF):
+    #     self.text_selected
     @Slot(QUrl)
     def open(self, doc_location):
         if doc_location.isLocalFile():
@@ -163,6 +135,6 @@ class MainWindow(QMainWindow):
     def text_selected(self, page_num, start_pt, end_pt):
         if self.m_document.status() == QPdfDocument.Status.Ready:
             selection = self.m_document.getSelection(page_num, start_pt, end_pt)
-            if selection:
+            if selection and selection.isValid():
                 text = selection.text()
-                print(text)
+                self.ui.pdfView.set_selection(selection)

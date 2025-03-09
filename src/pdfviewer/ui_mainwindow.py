@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (QMenu,
                                QMenuBar, QSizePolicy, QSplitter, QStatusBar,
                                QTabWidget, QToolBar, QTreeView, QVBoxLayout,
                                QWidget)
+
+from src.pdfviewer.SelectableQPdfView import SelectableQPdfView
 from src.pdfviewer.videoOpener import VideoOpener
 
 
@@ -132,7 +134,9 @@ class Ui_MainWindow(object):
         self.pagesTab.setObjectName(u"pagesTab")
         self.tabWidget.addTab(self.pagesTab, "")
         self.splitter.addWidget(self.tabWidget)
-        self.pdfView = QPdfView(self.splitter)
+        self.pdfView = SelectableQPdfView(self.splitter)
+        # self.pdfView = QPdfView(self.splitter)
+        self.pdfView.setPageMode(QPdfView.PageMode.MultiPage)
         self.pdfView.setObjectName(u"pdfView")
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy1.setHorizontalStretch(10)
