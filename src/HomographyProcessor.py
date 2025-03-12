@@ -132,7 +132,7 @@ class HomographyProcessor:
             homography)
         transformed_pts = [(int(x[0][0]), int(x[0][1])) for x in transformed_pts]
         transformed_polygon = Polygon(transformed_pts)
-        shrinking_k = 0.8
+        shrinking_k = 0.78
         untouchable_rect = box(
             dst_w * (1 - shrinking_k),
             dst_h * (1 - shrinking_k),

@@ -28,6 +28,8 @@ class FailureInfo:
 
 
 def create_failure_report_single_match(output_path, failure_info: FailureInfo):
+    if(failure_info.expected_slide is None):
+        failure_info.expected_slide = -1
     with PdfPages(output_path / f"slide{failure_info.expected_slide:03d}-report.pdf") as pdf:
         fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
         axes.bar(failure_info.match_score_chart.keys(), failure_info.match_score_chart.values(), align='center',

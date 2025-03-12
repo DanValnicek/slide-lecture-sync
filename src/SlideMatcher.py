@@ -1,6 +1,7 @@
 import sys
 from bisect import bisect
 from collections import defaultdict
+from math import sqrt
 from typing import Sequence
 
 import cv2
@@ -50,18 +51,19 @@ class SlideMatcher:
 
     def pick_best_slide(self, matched_descriptors_from_all, slide_idxs):
         if slide_idxs == []:
-            return None
+            return {}
         if len(slide_idxs) == 1:
-            return slide_idxs[0]
-        unique_descriptors = np.unique(np.vstack(matched_descriptors_from_all), axis=0)
-        id_scores = []
+            return {slide_idxs[0]: 1}
+        unique_descriptors = np.unique(np.vstack([self.descriptors[d] for d in matched_descriptors_from_all]), axis=0)
+        hist = {}
         for slide_id in slide_idxs:
             matches = self.matcher.knnMatch(unique_descriptors, self.slideDescriptors(slide_id), k=1)
             distance = sum([1 if m[0].distance < 0.5 else 0 for m in matches])
-            id_scores.append((slide_id, distance))
-        max_match = max(id_scores, key=lambda x: x[1])
-        pruned_scores = [val for val in id_scores if val[1] > max_match[1] * 0.9]
-        return min(pruned_scores, key=lambda x: self.slideDescCnt(x[0]))[0]
+            score = distance / (sqrt(len(unique_descriptors)) * sqrt(self.slideDescCnt(slide_id)))
+            if score < 0.4:
+                continue
+            hist[slide_id] = score
+        return hist
 
     def find_all_similar_descriptors_indexes(self, desc_index):
         maxResults = 10
@@ -72,7 +74,7 @@ class SlideMatcher:
         similar_matches = self.flannIndex.radiusSearch(self.descriptors[desc_index].reshape(1, -1), radius=1,
                                                        maxResults=similar_matches[0])
         if desc_index not in similar_matches[1][0]:
-            np.append(similar_matches[1][0], desc_index)
+            return np.append(similar_matches[1][0], desc_index)
         return similar_matches[1][0]
 
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
@@ -107,9 +109,8 @@ class SlideMatcher:
 
     def matched_slide(self, frame, debug_info: list = None, mask=None):
         slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, mask)
-        match_histogram = dict()
-        # picked_descriptors = []
-        # picked_slides = []
+        picked_descriptors = []
+        picked_slides = []
         homographies = dict()
         for slide_idx, src_dst_kps in slides_keypoints.items():
             if len(src_dst_kps) < 5:
@@ -124,34 +125,14 @@ class SlideMatcher:
                 continue
 
             homographies[slide_idx] = homog
-            # picked_descriptors.append(calc_result)
-            slide_desc_range = self.slideIdxToDescRange(slide_idx)
-            slide_desc_index = cv2.flann.Index(np.array([self.descriptors[d_idx] for d_idx in calc_result]),
-                                               {"algorithm": 1, "trees": 1})
-            # filtered_desc_count = len(picked_descriptors[0])
-
-            q_tf_idf_vec = np.zeros(slide_desc_range[1] - slide_desc_range[0], dtype=np.float32)
-            for d in calc_result:
-                same_q_cnt = slide_desc_index.radiusSearch(self.descriptors[d].reshape(1, -1), 0.5, 1)[0]
-                q_tf_idf_vec[d - slide_desc_range[0]] = (same_q_cnt / len(calc_result)) * self.dataset_idf[
-                    d - slide_desc_range[0]]
-
-            match_histogram[slide_idx] = np.dot(q_tf_idf_vec,
-                                                self.dataset_tf_idf[slide_desc_range[0]:slide_desc_range[1]]) / (
-                                                 np.linalg.norm(q_tf_idf_vec) * self.slide_tf_idf_norms[slide_idx])
-            # picked_slides.append(slide_idx)
+            picked_descriptors += calc_result
+            picked_slides.append(slide_idx)
             warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
             if debug_info is not None and (debug_info is [] or len(debug_info) <= 3):
                 if len(debug_info) == 3:
                     debug_info.pop(-1)
                 best_keypoints1 = [cv2.KeyPoint(*x[0][0], 1) for x in dbg_src_pts]
                 best_keypoints2 = [cv2.KeyPoint(*x[1][0], 1) for x in dbg_src_pts]
-                # for i, m in enumerate(mask2):
-                #     if m:
-                #         best_keypoints2.append(cv2.KeyPoint(dst_pts2[i][0][0], dst_pts2[i][0][1], 1))
-                #         best_keypoints1.append(cv2.KeyPoint(src_pts2[i][0][0], src_pts2[i][0][1], 1))
-                # best_keypoints1 = [kp[m.queryIdx].pt for m in significant_kp]
-                # best_keypoints2 = [self.keypoints[m.trainIdx].pt for m in significant_kp]
                 debug_info.append({
                     'matched_slide': slide_idx,
                     'visual': cv2.drawMatches(
@@ -167,18 +148,12 @@ class SlideMatcher:
                         flags=cv2.DrawMatchesFlags_DEFAULT),
                     'homog': homog,
                     'warped_image': warped_img})
-                debug_info = sorted(debug_info,
-                                    key=lambda img_tup: match_histogram[img_tup['matched_slide']],
-                                    reverse=True)
-        # best_slide = self.pick_best_slide(picked_descriptors, picked_slides)
-        # match_histogram[best_slide] = 1
-        # if best_slide is None and mask is not None:
-        #     return self.matched_slide(frame, debug_info)
+                # debug_info = sorted(debug_info,
+                #                     key=lambda img_tup: match_histogram[img_tup['matched_slide']],
+                #                     reverse=True)
+        match_histogram = self.pick_best_slide(picked_descriptors, picked_slides)
         if match_histogram == {}:
             return match_histogram, None, None, None
-        # added_margin = 1.1
-        # full_mask = np.ones((np.array(self.presentation.slides[best_slide].image.size) * added_margin).astype(int))
-        # mask = cv2.warpPerspective(full_mask, np.linalg.inv(homographies[best_slide]), frame.shape[:2]).astype(np.uint8)
         return match_histogram, max(match_histogram, key=match_histogram.get), debug_info, mask
 
     def descIdxToSlideIdx(self, train_id):

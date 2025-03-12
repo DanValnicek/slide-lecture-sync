@@ -13,7 +13,6 @@ from src.VideoInfo import VideoInfo
 
 logger = logging.getLogger(__name__)
 
-# TODO: split code into argparser, homography finder, image matcher
 if __name__ == '__main__':
     homo_checker = HomographyProcessor()
     print(CustomArgParser.get_args().pdf)
@@ -29,7 +28,7 @@ if __name__ == '__main__':
     video_duration = video.get(cv2.CAP_PROP_FRAME_COUNT) // video.get(cv2.CAP_PROP_FPS) * 1000
     slide_matcher = SlideMatcher(presentation)
     slide_matcher.create_training_keypoint_set()
-    pos = 1700000
+    pos = 0
     matching_plots = []
     videoStats = VideoInfo(CustomArgParser.get_args().pdf, CustomArgParser.get_args().video)
 
@@ -37,9 +36,6 @@ if __name__ == '__main__':
     while pos < video_duration:
         start_time = datetime.now()
         pos += 1000
-        # pos = pos + video_duration / 30
-        # if pos > video_duration:
-        #     break
         video.set(cv2.CAP_PROP_POS_MSEC, pos)
         got_img, frame = video.read()
         if not got_img:
@@ -48,32 +44,6 @@ if __name__ == '__main__':
         hist, slide_id, _, mask = slide_matcher.matched_slide(frame, mask=optimization_mask)
         optimization_mask = mask
         videoStats.add_mapping_continuous(slide_id, pos)
-        # sorted_hist = {key: hist[key] for key in sorted(hist)}
         print(videoStats.toJSON())
-        # print(sorted_hist)
-        # if hist:
-        #     matching_plots.append(
-        #         (frame, presentation.slides[max(hist, key=hist.get)].image, sorted_hist))
         print(pos, " ", datetime.now() - start_time)
     video.release()
-
-    # cols = 3
-    # fig, axes = plt.subplots(len(matching_plots), cols, figsize=(10, 5 * len(matching_plots)))
-    # axes = axes.ravel()  # Flatten axes for easier iteration
-    #
-    # # axes[0].imshow(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB))
-    # for i, img in enumerate(matching_plots):
-    #     axes[i * cols].imshow(cv2.cvtColor(img[0], cv2.COLOR_BGR2RGB))
-    #     # axes[i * 2].set_title(f"slide: {img[3]}\nat: {img[2]}\nmatch_cnt: {img[4]}\nmatched_slides_cnt: {img[5]}")
-    #     axes[i * cols + 1].imshow(img[1])
-    #     axes[i * cols + 2].bar(img[2].keys(), img[2].values(), align='center',
-    #                            tick_label=[str(key) for key in img[2].keys()])
-    #     axes[i * cols + 2].set_xlabel('Slide number')
-    #     axes[i * cols + 2].set_ylabel('match valuation')
-    #     axes[i * cols].axis('off')  # Turn off axis labels for clarity
-    #     axes[i * cols + 1].axis('off')  # Turn off axis labels for clarity
-    #
-    # plt.tight_layout()
-    # with PdfPages('data/imgs/matched_slides.pdf') as pdf:
-    #     pdf.savefig(fig)
-    # plt.close()
