@@ -1,36 +1,60 @@
-import hashlib
-import json
+from pypdf import PdfWriter
+from pypdf.generic import ArrayObject, NameObject, DictionaryObject
 
-from videohash2 import VideoHash
-from pathlib import Path
+from src.Presentation import ImageDecorator, Presentation
 
 
-class VideoInfo:
-    def __init__(self, presentation_path, video_path):
-        self.intervals: dict[tuple[int, int]] = dict()
-        # self.video_hash = VideoHash(path=video_path, storage_path=Path(__file__).parent.__str__(), frame_interval=0.1)
-        with open(presentation_path, 'rb') as f:
-            self.presentation_hash = hashlib.sha256(f.read()).digest()
+class SlideIntervalInfo(ImageDecorator):
+    def __init__(self, image):
+        super().__init__(image)
+        self.intervals: list[list[int, int]] = []
 
-    def add_mapping_continuous(self, slide_id, timestamp_msec):
-        slide_intervals = self.intervals.setdefault(slide_id, [])
-        if slide_intervals == [] or timestamp_msec - slide_intervals[-1][1] > 1000:
-            slide_intervals.append((timestamp_msec, timestamp_msec))
+    def add_point_in_time(self, time_ms):
+        for i, interval in enumerate(self.intervals):
+            start, end = interval
+            if abs(time_ms - end) <= 1000:
+                self.intervals[i][1] = time_ms
+                return
+            if abs(start - time_ms) <= 1000:
+                self.intervals[i][0] = time_ms
+                return
+            if start <= time_ms <= end:
+                return
+        self.intervals.append([time_ms, time_ms])
+
+    def get_intervals(self):
+        self.intervals.sort(key=lambda x: x[0])
+        i = 0
+        while i < len(self.intervals) - 1:
+            if self.intervals[i + 1][0] <= self.intervals[i][0] <= self.intervals[i + 1][1]:
+                self.intervals[i][1] = self.intervals[i + 1][1]
+                self.intervals.pop(i + 1)
+            else:
+                i += 1
+        return self.intervals
+
+
+class PresentationWSlideIntervals:
+    def __init__(self, presentation: Presentation):
+        self.presentation: Presentation = presentation
+        for i, slide in enumerate(presentation.slides):
+            if not isinstance(slide, SlideIntervalInfo):
+                presentation.slides[i] = SlideIntervalInfo(slide)
+
+    def __getattr__(self, name):
+        return getattr(self.presentation, name)
+
+    def add_point_to_slides(self, slide_n, time_ms):
+        if slide_n is None:
             return
-        slide_intervals[-1] = (slide_intervals[-1][0], timestamp_msec)
+        self.presentation.slides[slide_n].add_point_in_time(time_ms)
 
-    def toJSON(self):
-        # Convert tuple keys to a string representation and bytes to hex.
-        intervals_serialized = {
-            str(key): value for key, value in self.intervals.items()
-        }
-        data = {
-            "intervals": intervals_serialized,
-            "presentation_hash": self.presentation_hash.hex()
-        }
-        return json.dumps(data)
-
-    def simplify(self):
-        intervals_copy = self.intervals.copy()
-        while intervals_copy != {}:
-            min_time = min([start_time[0] for start_time in intervals_copy.values()])
+    def compile_pdf_w_timestamps(self):
+        orig_pdf_path = self.presentation.get_pdf_file_path()
+        writer = PdfWriter("new.pdf", orig_pdf_path)
+        for i, slide in enumerate(self.presentation.slides):
+            writer.pages[i][NameObject("/DANV_SlideVideoSync")] = DictionaryObject(
+                {NameObject("/SlideAppearanceIntervals"): ArrayObject(slide.get_intervals())}
+            )
+        with open("slides_with_specific_timing.pdf", "wb") as f:
+            writer.write(f)

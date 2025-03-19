@@ -32,15 +32,15 @@ class PresentationCreator:
 # Base decorator class for Image
 class ImageDecorator(ABC):
     def __init__(self, img: Image) -> None:
-        self._image = img
+        self._img_decor = img
 
     @property
     def image(self) -> Image:
-        return self._image
+        return self._img_decor
 
     def __getattr__(self, method_name):
         """Delegate method calls to the wrapped image."""
-        return getattr(self._image, method_name)
+        return getattr(self._img_decor, method_name)
 
 
 # A decorator for Presentation slides that uses ImageDecorator to wrap images
@@ -63,11 +63,14 @@ class PresentationSlide(ImageDecorator):
 class Presentation(ABC):
     slides: List[PresentationSlide]
 
+
     def __new__(cls, path: Path):
         # Dynamically assign class based on file extension
         if cls is Presentation:
             cls = PresentationCreator.get(path.suffix)
         return super().__new__(cls)
+    def get_pdf_file_path(self):
+        pass
 
     def __init__(self, path: Path):
         pass
@@ -78,9 +81,13 @@ class Presentation(ABC):
 class PdfPresentation(Presentation):
 
     def __init__(self, path: Path):
+        self.path = Path(path)
         # Convert PDF to list of images (one per page)
         with tempfile.TemporaryDirectory() as temp_dir:
             slides = convert_from_path(path, output_file='pdf', fmt="ppm", output_folder=temp_dir, size=(480, None))
-            self.slides = [PresentationSlide(img=img.copy(), page_number=i, presentation=self) for i, img in enumerate(slides)]
+            self.slides = [PresentationSlide(img=img.copy(), page_number=i, presentation=self) for i, img in
+                           enumerate(slides)]
 
         logging.getLogger(__name__).debug("file count: " + str(len(self.slides)))
+    def get_pdf_file_path(self):
+        return self.path
