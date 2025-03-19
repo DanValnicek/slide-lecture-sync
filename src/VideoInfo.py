@@ -37,9 +37,9 @@ class SlideIntervalInfo(ImageDecorator):
 class PresentationWSlideIntervals:
     def __init__(self, presentation: Presentation):
         self.presentation: Presentation = presentation
-        for i, slide in enumerate(presentation.slides):
+        for i, slide in enumerate(presentation.get_all_slides()):
             if not isinstance(slide, SlideIntervalInfo):
-                presentation.slides[i] = SlideIntervalInfo(slide)
+                presentation.set_slide(i, SlideIntervalInfo(slide))
 
     def __getattr__(self, name):
         return getattr(self.presentation, name)
@@ -47,12 +47,12 @@ class PresentationWSlideIntervals:
     def add_point_to_slides(self, slide_n, time_ms):
         if slide_n is None:
             return
-        self.presentation.slides[slide_n].add_point_in_time(time_ms)
+        self.presentation.get_slide(slide_n).add_point_in_time(time_ms)
 
     def compile_pdf_w_timestamps(self):
         orig_pdf_path = self.presentation.get_pdf_file_path()
         writer = PdfWriter("new.pdf", orig_pdf_path)
-        for i, slide in enumerate(self.presentation.slides):
+        for i, slide in enumerate(self.presentation.get_all_slides()):
             writer.pages[i][NameObject("/DANV_SlideVideoSync")] = DictionaryObject(
                 {NameObject("/SlideAppearanceIntervals"): ArrayObject(slide.get_intervals())}
             )

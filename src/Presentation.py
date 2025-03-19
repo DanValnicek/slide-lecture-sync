@@ -61,14 +61,25 @@ class PresentationSlide(ImageDecorator):
 
 # Abstract base class for Presentation, with factory method to load correct class based on file extension
 class Presentation(ABC):
-    slides: List[PresentationSlide]
 
+    def get_slide(self, slide_number: int) -> PresentationSlide:
+        ...
+
+    def get_all_slides(self):
+        ...
+
+    def set_slide(self, slide_number: int, value: ImageDecorator):
+        ...
+
+    def get_slide_cnt(self):
+        ...
 
     def __new__(cls, path: Path):
         # Dynamically assign class based on file extension
         if cls is Presentation:
             cls = PresentationCreator.get(path.suffix)
         return super().__new__(cls)
+
     def get_pdf_file_path(self):
         pass
 
@@ -79,15 +90,29 @@ class Presentation(ABC):
 # Register PdfPresentation for .pdf extension
 @PresentationCreator.register('.pdf')
 class PdfPresentation(Presentation):
+    _slides: List[PresentationSlide]
 
     def __init__(self, path: Path):
         self.path = Path(path)
         # Convert PDF to list of images (one per page)
         with tempfile.TemporaryDirectory() as temp_dir:
             slides = convert_from_path(path, output_file='pdf', fmt="ppm", output_folder=temp_dir, size=(480, None))
-            self.slides = [PresentationSlide(img=img.copy(), page_number=i, presentation=self) for i, img in
+            self._slides = [PresentationSlide(img=img.copy(), page_number=i, presentation=self) for i, img in
                            enumerate(slides)]
 
-        logging.getLogger(__name__).debug("file count: " + str(len(self.slides)))
+        logging.getLogger(__name__).debug("file count: " + str(self.get_slide_cnt()))
+
     def get_pdf_file_path(self):
         return self.path
+
+    def get_slide(self, slide_number: int) -> PresentationSlide:
+        return self._slides[slide_number]
+
+    def get_all_slides(self):
+        return self._slides
+
+    def set_slide(self, slide_number: int, value: PresentationSlide):
+        self._slides[slide_number] = value
+
+    def get_slide_cnt(self):
+        return len(self._slides)

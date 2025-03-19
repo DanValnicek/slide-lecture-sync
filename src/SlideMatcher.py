@@ -3,13 +3,11 @@ from bisect import bisect
 from collections import defaultdict
 from math import sqrt
 from typing import Sequence
-
 import cv2
 import numpy as np
 from numpy import ndarray
-
+from shapely.geometry import Polygon, box
 from src import Presentation
-from src.HomographyProcessor import HomographyProcessor
 
 
 class SlideMatcher:
@@ -33,7 +31,7 @@ class SlideMatcher:
         self.descriptors = []
 
     def warp_and_recompute_slide_descriptors(self, frame, homog, slide_idx, dbg_src_pts=None):
-        warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
+        warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
         kp2, desc2 = self.sift_detector.compute(warped_img, self.slideKeypoints(slide_idx), None)
         slide_descriptors = self.slideDescriptors(slide_idx)
         matches = self.matcher.knnMatch(desc2, slide_descriptors, k=1)
@@ -97,13 +95,38 @@ class SlideMatcher:
         return instance_cnt
 
     @staticmethod
+    def reasonableHomography(homography, src_w, src_h, dst_w, dst_h) -> bool:
+        src_size = src_w * src_h
+        dst_size = dst_w * dst_h
+        min_scale_factor = dst_size / src_size
+        max_scale_factor = dst_size / (32 * 32)
+        sub_mat = np.linalg.det(homography[:2, :2])
+        if not min_scale_factor * 0.9 < sub_mat <= 1.1 * max_scale_factor:
+            return False
+        transformed_pts = cv2.perspectiveTransform(
+            np.float32([[0, 0], [0, src_h - 1], [src_w - 1, src_h - 1], [src_w - 1, 0]]).reshape(-1, 1, 2),
+            homography)
+        transformed_pts = [(int(x[0][0]), int(x[0][1])) for x in transformed_pts]
+        transformed_polygon = Polygon(transformed_pts)
+        shrinking_k = 0.78
+        untouchable_rect = box(
+            dst_w * (1 - shrinking_k),
+            dst_h * (1 - shrinking_k),
+            dst_w * shrinking_k,
+            dst_h * shrinking_k
+        )
+        if not untouchable_rect.within(transformed_polygon):
+            return False
+        return True
+
+    @staticmethod
     def spatial_pruning_and_verification(src_dst_kps, frame_h_w, slide_h_w):
         src_pts = np.float32([v[0] for v in src_dst_kps]).reshape(-1, 1, 2)
         dst_pts = np.float32([v[1] for v in src_dst_kps]).reshape(-1, 1, 2)
         homog, mask = cv2.findHomography(dst_pts, src_pts, cv2.USAC_ACCURATE, 1.0)
         f_h, f_w, = frame_h_w
         s_h, s_w, = slide_h_w
-        if homog is None or not HomographyProcessor.reasonableHomography(homog, f_w, f_h, s_w, s_h):
+        if homog is None or not SlideMatcher.reasonableHomography(homog, f_w, f_h, s_w, s_h):
             return
         return homog
 
@@ -115,8 +138,10 @@ class SlideMatcher:
         for slide_idx, src_dst_kps in slides_keypoints.items():
             if len(src_dst_kps) < 5:
                 continue
-            homog = self.spatial_pruning_and_verification(src_dst_kps, frame.shape[:2],
-                                                          self.presentation.slides[slide_idx].image.size)
+            homog = self.spatial_pruning_and_verification(
+                src_dst_kps, frame.shape[:2],
+                self.presentation.get_slide(slide_idx).image.size
+            )
             if homog is None:
                 continue
             dbg_src_pts = []
@@ -127,7 +152,7 @@ class SlideMatcher:
             homographies[slide_idx] = homog
             picked_descriptors += calc_result
             picked_slides.append(slide_idx)
-            warped_img = cv2.warpPerspective(frame, homog, self.presentation.slides[slide_idx].image.size)
+            warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
             if debug_info is not None and (debug_info is [] or len(debug_info) <= 3):
                 if len(debug_info) == 3:
                     debug_info.pop(-1)
@@ -140,7 +165,7 @@ class SlideMatcher:
                         warped_img,
                         # [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints1],
                         best_keypoints2,
-                        np.array(self.presentation.slides[slide_idx].image)[:, :, ::-1],
+                        np.array(self.presentation.get_slide(slide_idx).image)[:, :, ::-1],
                         # [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints2],
                         best_keypoints1,
                         [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
@@ -178,7 +203,7 @@ class SlideMatcher:
     def create_training_keypoint_set(self):
         self.descriptors: ndarray = []
         self.keypoints = []
-        for slide in self.presentation.slides:
+        for slide in self.presentation.get_all_slides():
             kp, desc = (self.sift_detector.detectAndCompute(np.array(slide.image), None))
             self.descriptors.append(desc)
             self.keypoints += kp
@@ -189,7 +214,7 @@ class SlideMatcher:
         # calculate tf-idf
         descriptor_count = self.descriptors.shape[0]
         self.dataset_tf_idf = np.zeros(descriptor_count)
-        slide_count = len(self.presentation.slides)
+        slide_count = self.presentation.get_slide_cnt()
         for idx in range(0, slide_count):
             n_in_frame = self.slideDescCnt(idx)
             for i in range(*self.slideIdxToDescRange(idx)):

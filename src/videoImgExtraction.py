@@ -14,9 +14,7 @@ if __name__ == '__main__':
     print(CustomArgParser.get_args().pdf)
     presentation = Presentation(CustomArgParser.get_args().pdf)
 
-    # for i, slide in enumerate(presentation.slides):
-    #     cv2.imwrite(f"./data/imgs/{i}-slide.png", cv2.cvtColor(numpy.array(slide.image), cv2.COLOR_RGB2BGR))
-    w, h = presentation.slides[0].image.size
+    w, h = presentation.get_slide(0).image.size
     logger.debug("height: " + str(h) + "width: " + str(w))
     print(CustomArgParser.get_args().video)
     video = cv2.VideoCapture(CustomArgParser.get_args().video, apiPreference=cv2.CAP_FFMPEG)
