@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import sys
+from pathlib import Path
 
 from PySide6.QtPdf import QPdfBookmarkModel, QPdfDocument
 from PySide6.QtPdfWidgets import QPdfView
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMessageBox,
                                QSpinBox)
 from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot, Qt, QEvent
 
+from src.VideoInfo import PresentationSlideIntervals
 from zoomselector import ZoomSelector
 from ui_mainwindow import Ui_MainWindow
 
@@ -27,6 +29,7 @@ class MainWindow(QMainWindow):
         self.m_document = QPdfDocument(self)
         self.m_fileDialog = None
 
+        self.slide_intervals = None
         self.selected_start = None
         self.selected_end = None
 
@@ -90,6 +93,7 @@ class MainWindow(QMainWindow):
             self.setWindowTitle(document_title if document_title else "PDF Viewer")
             self.page_selected(0)
             self.m_pageSelector.setMaximum(self.m_document.pageCount() - 1)
+            self.slide_intervals = PresentationSlideIntervals(Path(doc_location.toLocalFile()))
         else:
             message = f"{doc_location} is not a valid local file"
             print(message, file=sys.stderr)

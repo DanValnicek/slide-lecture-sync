@@ -133,6 +133,7 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.pagesTab, "")
         self.splitter.addWidget(self.tabWidget)
         self.pdfView = QPdfView(self.splitter)
+        self.pdfView.setPageMode(QPdfView.PageMode.MultiPage)
         self.pdfView.setObjectName(u"pdfView")
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy1.setHorizontalStretch(10)

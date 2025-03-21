@@ -2,15 +2,13 @@ import logging
 from datetime import datetime
 import cv2
 from src.Argparser import CustomArgParser
-from src.HomographyProcessor import HomographyProcessor
 from src.Presentation import Presentation
 from src.SlideMatcher import SlideMatcher
-from src.VideoInfo import PresentationWSlideIntervals
+from src.VideoInfo import PresentationSlideIntervals
 
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
-    homo_checker = HomographyProcessor()
     print(CustomArgParser.get_args().pdf)
     presentation = Presentation(CustomArgParser.get_args().pdf)
 
@@ -22,9 +20,9 @@ if __name__ == '__main__':
     video_duration = video.get(cv2.CAP_PROP_FRAME_COUNT) // video.get(cv2.CAP_PROP_FPS) * 1000
     slide_matcher = SlideMatcher(presentation)
     slide_matcher.create_training_keypoint_set()
-    pos = 0
+    pos = 10000
     matching_plots = []
-    presentation_w_interval_info = PresentationWSlideIntervals(presentation)
+    slide_intervals = PresentationSlideIntervals()
     optimization_mask = None
     while pos < video_duration:
         start_time = datetime.now()
@@ -34,6 +32,7 @@ if __name__ == '__main__':
         if not got_img:
             continue
         hist, slide_id, _, mask = slide_matcher.matched_slide(frame, mask=optimization_mask)
-        presentation_w_interval_info.add_point_to_slides(slide_id, pos)
+        slide_intervals.add_point_to_slides(slide_id, pos)
+        print(slide_intervals.to_json_human_readable())
     video.release()
-    presentation_w_interval_info.compile_pdf_w_timestamps()
+    slide_intervals.compile_pdf_w_timestamps(presentation.get_pdf_file_path(),"pdf_w_timings.pdf")
