@@ -54,8 +54,8 @@ class PresentationSlideIntervals:
     def compile_pdf_w_timestamps(self, original_pdf_path: Path, output_path: Path):
         writer = PdfWriter("new.pdf", original_pdf_path)
         for i, intervals in self.slide_intervals.items():
-            writer.pages[i][NameObject("/DANV_SlideVideoSync")] = DictionaryObject(
-                {NameObject(): ArrayObject(
+            writer.pages[i][NameObject(CUSTOM_EXTENSION_NAME)] = DictionaryObject(
+                {NameObject(CUSTOM_INTERVALS_SUBKEY_NAME): ArrayObject(
                     [ArrayObject([NumberObject(start), NumberObject(end)]) for start, end in intervals])}
             )
         with open(output_path, "wb") as f:

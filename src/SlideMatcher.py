@@ -43,6 +43,7 @@ class SlideMatcher:
         homog2, mask2 = cv2.findHomography(dst_pts2, src_pts2, cv2.USAC_ACCURATE, 1.0)
         descriptors = [self.slideIdxToDescRange(slide_idx)[0] + matches[i][0].trainIdx for i, inlier in enumerate(mask2)
                        if inlier]
+        descriptors = list(dict.fromkeys(descriptors))
         if dbg_src_pts is not None:
             dbg_src_pts[:] = [(src_pts2[i], dst_pts2[i]) for i, inlier in enumerate(mask2) if inlier]
         return descriptors
@@ -146,7 +147,7 @@ class SlideMatcher:
                 continue
             dbg_src_pts = []
             calc_result = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx, dbg_src_pts=dbg_src_pts)
-            if calc_result is None:
+            if len(calc_result) < 10 or calc_result is None:
                 continue
 
             homographies[slide_idx] = homog
@@ -212,16 +213,16 @@ class SlideMatcher:
         self.descriptors = np.vstack(self.descriptors)
         self.flannIndex = cv2.flann.Index(self.descriptors, {"algorithm": 1, "trees": 1})
         # calculate tf-idf
-        descriptor_count = self.descriptors.shape[0]
-        self.dataset_tf_idf = np.zeros(descriptor_count)
-        slide_count = self.presentation.get_slide_cnt()
-        for idx in range(0, slide_count):
-            n_in_frame = self.slideDescCnt(idx)
-            for i in range(*self.slideIdxToDescRange(idx)):
-                same_descriptors = self.find_all_similar_descriptors_indexes(i)
-                same_in_frame = sum(1 for x in same_descriptors if self.descIdxToSlideIdx(x) == idx)
-                df = len({self.descIdxToSlideIdx(x) for x in same_descriptors})
-                # td-idf weight from https://www.cs.toronto.edu/~fidler/slides/2022Winter/CSC420/lecture14.pdf#page=42
-                self.dataset_idf.append(np.log2(slide_count / df))
-                self.dataset_tf_idf[i] = (same_in_frame / n_in_frame) * self.dataset_idf[i]
-            self.slide_tf_idf_norms.append(np.linalg.norm(self.dataset_tf_idf[slice(*self.slideIdxToDescRange(idx))]))
+        # descriptor_count = self.descriptors.shape[0]
+        # self.dataset_tf_idf = np.zeros(descriptor_count)
+        # slide_count = self.presentation.get_slide_cnt()
+        # for idx in range(0, slide_count):
+        #     n_in_frame = self.slideDescCnt(idx)
+        #     for i in range(*self.slideIdxToDescRange(idx)):
+        #         same_descriptors = self.find_all_similar_descriptors_indexes(i)
+        #         same_in_frame = sum(1 for x in same_descriptors if self.descIdxToSlideIdx(x) == idx)
+        #         df = len({self.descIdxToSlideIdx(x) for x in same_descriptors})
+        #         # td-idf weight from https://www.cs.toronto.edu/~fidler/slides/2022Winter/CSC420/lecture14.pdf#page=42
+        #         self.dataset_idf.append(np.log2(slide_count / df))
+        #         self.dataset_tf_idf[i] = (same_in_frame / n_in_frame) * self.dataset_idf[i]
+        #     self.slide_tf_idf_norms.append(np.linalg.norm(self.dataset_tf_idf[slice(*self.slideIdxToDescRange(idx))]))

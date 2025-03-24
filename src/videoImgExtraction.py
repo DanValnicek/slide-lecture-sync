@@ -20,7 +20,7 @@ if __name__ == '__main__':
     video_duration = video.get(cv2.CAP_PROP_FRAME_COUNT) // video.get(cv2.CAP_PROP_FPS) * 1000
     slide_matcher = SlideMatcher(presentation)
     slide_matcher.create_training_keypoint_set()
-    pos = 10000
+    pos = 0
     matching_plots = []
     slide_intervals = PresentationSlideIntervals()
     optimization_mask = None
