@@ -1,6 +1,10 @@
 import logging
 from datetime import datetime
+from pathlib import Path
+
 import cv2
+from PySide6.QtCore import Signal, QThread
+
 from src.Argparser import CustomArgParser
 from src.Presentation import Presentation
 from src.SlideMatcher import SlideMatcher
@@ -31,8 +35,41 @@ if __name__ == '__main__':
         got_img, frame = video.read()
         if not got_img:
             continue
-        hist, slide_id, _, mask = slide_matcher.matched_slide(frame, mask=optimization_mask)
+        hist, slide_id, _ = slide_matcher.matched_slide(frame)
         slide_intervals.add_point_to_slides(slide_id, pos)
         print(slide_intervals.to_json_human_readable())
     video.release()
-    slide_intervals.compile_pdf_w_timestamps(presentation.get_pdf_file_path(),"pdf_w_timings.pdf")
+    slide_intervals.compile_pdf_w_timestamps(presentation.get_pdf_file_path(), "pdf_w_timings.pdf")
+
+
+class SlideIntervalFinder(QThread):
+    progres_updated = Signal(int)
+
+    def __init__(self, video_path: Path, presentation_path: Path, out_pdf_path: Path):
+        super().__init__()
+        presentation = Presentation(presentation_path)
+        w, h = presentation.get_slide(0).image.size
+        logger.debug("height: " + str(h) + "width: " + str(w))
+        self.video = cv2.VideoCapture(video_path, apiPreference=cv2.CAP_FFMPEG)
+        self.video_duration = self.video.get(cv2.CAP_PROP_FRAME_COUNT) // self.video.get(cv2.CAP_PROP_FPS) * 1000
+        self.slide_matcher = SlideMatcher(presentation)
+        self.out_pdf_path = out_pdf_path
+
+    def get_frame_cnt(self):
+        return self.video_duration // 1000
+
+    def run(self) -> PresentationSlideIntervals:
+        self.slide_matcher.create_training_keypoint_set()
+        pos = 0
+        slide_intervals = PresentationSlideIntervals()
+        while pos < self.video_duration:
+            pos += 1000
+            self.video.set(cv2.CAP_PROP_POS_MSEC, pos)
+            got_img, frame = self.video.read()
+            if not got_img:
+                continue
+            hist, slide_id, _ = self.slide_matcher.matched_slide(frame)
+            slide_intervals.add_point_to_slides(slide_id, pos)
+            self.progres_updated.emit(pos // 1000)
+        self.video.release()
+        slide_intervals.compile_pdf_w_timestamps(presentation.get_pdf_file_path(), self.out_pdf_path)

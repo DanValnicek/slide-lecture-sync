@@ -10,9 +10,10 @@ from PySide6.QtPdf import QPdfBookmarkModel, QPdfDocument
 from PySide6.QtPdfWidgets import QPdfView
 from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMessageBox,
                                QSpinBox)
-from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot, Qt, QEvent
+from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot, Qt, QEvent, Signal
 
 from src.VideoInfo import PresentationSlideIntervals
+from src.VideoPresentationProcessingWidget import VideoPresentationProcessingWidget
 from zoomselector import ZoomSelector
 from ui_mainwindow import Ui_MainWindow
 
@@ -21,6 +22,7 @@ ZOOM_MULTIPLIER = math.sqrt(2.0)
 
 class MainWindow(QMainWindow):
 
+    document_location_changed = Signal(QUrl)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
@@ -29,9 +31,7 @@ class MainWindow(QMainWindow):
         self.m_document = QPdfDocument(self)
         self.m_fileDialog = None
 
-        self.slide_intervals = None
-        self.selected_start = None
-        self.selected_end = None
+        self.document_location = None
 
         self.ui.setupUi(self)
 
@@ -49,41 +49,12 @@ class MainWindow(QMainWindow):
         self.m_zoomSelector.zoom_factor_changed.connect(self.ui.pdfView.setZoomFactor)
         self.m_zoomSelector.reset()
 
-        self.ui.tabWidget.setTabEnabled(1, False)  # disable 'Pages' tab for now
+        self.ui.tabWidget.setTabEnabled(1, True)  # disable 'Pages' tab for now
 
         self.ui.pdfView.setDocument(self.m_document)
 
         self.ui.pdfView.zoomFactorChanged.connect(self.m_zoomSelector.set_zoom_factor)
-
-    def eventFilter(self, obj, event):
-        """ Capture mouse events inside QLabel """
-        if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-            self.selected_start = event.pos()
-            return True  # Event handled
-
-        elif event.type() == QEvent.MouseMove and self.selected_start:
-            self.selected_end = event.pos()
-            self.text_selected(self.m_pageSelector.value(), self.selected_start, self.selected_end)
-            return True  # Event handled
-
-        elif event.type() == QEvent.MouseButtonRelease and self.selected_start and self.selected_end:
-            self.selected_start = self.selected_end = None  # Reset selection
-            return True  # Event handled
-
-        return super().eventFilter(obj, event)
-
-    def mousePressEvent(self, event):
-        print(event)
-        if event.button() == Qt.LeftButton:
-            self.selected_start = event.position()
-            print(self.selected_start)
-
-    def mouseMoveEvent(self, event):
-        if self.selected_start:
-            self.selected_end = event.position()
-            print(self.selected_start)
-            print(self.selected_end)
-            self.text_selected(self.m_pageSelector.value(), self.selected_start, self.selected_end)
+        self.open_video_processors = []
 
     @Slot(QUrl)
     def open(self, doc_location):
@@ -93,7 +64,8 @@ class MainWindow(QMainWindow):
             self.setWindowTitle(document_title if document_title else "PDF Viewer")
             self.page_selected(0)
             self.m_pageSelector.setMaximum(self.m_document.pageCount() - 1)
-            self.slide_intervals = PresentationSlideIntervals(Path(doc_location.toLocalFile()))
+            self.document_location = doc_location
+            self.document_location_changed.emit(doc_location)
         else:
             message = f"{doc_location} is not a valid local file"
             print(message, file=sys.stderr)
@@ -170,3 +142,8 @@ class MainWindow(QMainWindow):
             if selection:
                 text = selection.text()
                 print(text)
+
+    def open_video_presentation_processor(self):
+        widget = VideoPresentationProcessingWidget()
+        widget.show()
+        self.open_video_processors.append(widget)

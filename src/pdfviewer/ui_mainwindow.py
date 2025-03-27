@@ -14,8 +14,10 @@ from PySide6.QtGui import (QAction, QIcon)
 from PySide6.QtPdfWidgets import QPdfView
 from PySide6.QtWidgets import (QMenu,
                                QMenuBar, QSizePolicy, QSplitter, QStatusBar,
-                               QTabWidget, QToolBar, QTreeView, QVBoxLayout,
+                               QTabWidget, QToolBar, QVBoxLayout,
                                QWidget)
+
+from src.VideoPresentationProcessingWidget import VideoPresentationProcessingWidget
 from src.pdfviewer.videoOpener import VideoOpener
 
 
@@ -39,6 +41,9 @@ class Ui_MainWindow(object):
         self.actionQuit.setObjectName(u"actionQuit")
         icon1 = QIcon(QIcon.fromTheme(u"application-exit"))
         self.actionQuit.setIcon(icon1)
+        self.actionProcessVideoAndPresentation = QAction(MainWindow)
+        self.actionProcessVideoAndPresentation.triggered.connect(MainWindow.open_video_presentation_processor)
+        self.actionProcessVideoAndPresentation.setObjectName(u"Create video slide annotation")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
         icon2 = QIcon(QIcon.fromTheme(u"help-about"))
@@ -100,8 +105,6 @@ class Ui_MainWindow(object):
         icon8 = QIcon()
         icon8.addFile(u":/icons/images/go-next-view.svgz", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.actionForward.setIcon(icon8)
-        self.openVidBtn = VideoOpener(MainWindow)
-        self.openVidBtn.setObjectName(u"openVidBtn")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.verticalLayout = QVBoxLayout(self.centralWidget)
@@ -135,6 +138,11 @@ class Ui_MainWindow(object):
         self.pdfView = QPdfView(self.splitter)
         self.pdfView.setPageMode(QPdfView.PageMode.MultiPage)
         self.pdfView.setObjectName(u"pdfView")
+        # self.pagesTab = QPdfView()
+        # self.pagesTab.setPageMode(QPdfView.PageMode.MultiPage)
+        # self.pagesTab.setDocument(self.pdfView.document)
+        # self.pagesTab.setObjectName(u"pagesTab")
+        # self.tabWidget.addTab(self.pagesTab, "")
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy1.setHorizontalStretch(10)
         sizePolicy1.setVerticalStretch(0)
@@ -144,6 +152,8 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addWidget(self.splitter)
 
+        self.openVidBtn = VideoOpener(MainWindow.document_location_changed, self.pdfView)
+        self.openVidBtn.setObjectName(u"openVidBtn")
 
         self.verticalLayout.addWidget(self.widget)
 
@@ -171,6 +181,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuView.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionOpen)
+        self.menuFile.addAction(self.actionProcessVideoAndPresentation)
         self.menuFile.addAction(self.actionQuit)
         self.menuHelp.addAction(self.actionAbout)
         self.menuHelp.addAction(self.actionAbout_Qt)
@@ -187,12 +198,11 @@ class Ui_MainWindow(object):
         self.mainToolBar.addSeparator()
         self.mainToolBar.addAction(self.actionBack)
         self.mainToolBar.addAction(self.actionForward)
-        self.mainToolBar.addAction(self.openVidBtn)
+        self.mainToolBar.addWidget(self.openVidBtn)
 
         self.retranslateUi(MainWindow)
 
         self.tabWidget.setCurrentIndex(0)
-
 
         QMetaObject.connectSlotsByName(MainWindow)
     # setupUi
@@ -200,44 +210,45 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"PDF Viewer", None))
         self.actionOpen.setText(QCoreApplication.translate("MainWindow", u"Open...", None))
-#if QT_CONFIG(shortcut)
+        self.actionProcessVideoAndPresentation.setText(QCoreApplication.translate("MainWindow", u"Annotate slides in video"))
+        # if QT_CONFIG(shortcut)
         self.actionOpen.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+O", None))
-#endif // QT_CONFIG(shortcut)
+        # endif // QT_CONFIG(shortcut)
         self.actionQuit.setText(QCoreApplication.translate("MainWindow", u"Quit", None))
-#if QT_CONFIG(shortcut)
+        # if QT_CONFIG(shortcut)
         self.actionQuit.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+Q", None))
-#endif // QT_CONFIG(shortcut)
+        # endif // QT_CONFIG(shortcut)
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionAbout_Qt.setText(QCoreApplication.translate("MainWindow", u"About Qt", None))
         self.actionZoom_In.setText(QCoreApplication.translate("MainWindow", u"Zoom In", None))
-#if QT_CONFIG(shortcut)
+        # if QT_CONFIG(shortcut)
         self.actionZoom_In.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl++", None))
-#endif // QT_CONFIG(shortcut)
+        # endif // QT_CONFIG(shortcut)
         self.actionZoom_Out.setText(QCoreApplication.translate("MainWindow", u"Zoom Out", None))
-#if QT_CONFIG(shortcut)
+        # if QT_CONFIG(shortcut)
         self.actionZoom_Out.setShortcut(QCoreApplication.translate("MainWindow", u"Ctrl+-", None))
-#endif // QT_CONFIG(shortcut)
+        # endif // QT_CONFIG(shortcut)
         self.actionPrevious_Page.setText(QCoreApplication.translate("MainWindow", u"Previous Page", None))
-#if QT_CONFIG(shortcut)
+        # if QT_CONFIG(shortcut)
         self.actionPrevious_Page.setShortcut(QCoreApplication.translate("MainWindow", u"PgUp", None))
-#endif // QT_CONFIG(shortcut)
+        # endif // QT_CONFIG(shortcut)
         self.actionNext_Page.setText(QCoreApplication.translate("MainWindow", u"Next Page", None))
-#if QT_CONFIG(shortcut)
+        # if QT_CONFIG(shortcut)
         self.actionNext_Page.setShortcut(QCoreApplication.translate("MainWindow", u"PgDown", None))
-#endif // QT_CONFIG(shortcut)
+        # endif // QT_CONFIG(shortcut)
         self.actionContinuous.setText(QCoreApplication.translate("MainWindow", u"Continuous", None))
         self.actionBack.setText(QCoreApplication.translate("MainWindow", u"Back", None))
-#if QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.actionBack.setToolTip(QCoreApplication.translate("MainWindow", u"back to previous view", None))
-#endif // QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
         self.actionForward.setText(QCoreApplication.translate("MainWindow", u"Forward", None))
-#if QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
         self.actionForward.setToolTip(QCoreApplication.translate("MainWindow", u"forward to next view", None))
-#endif // QT_CONFIG(tooltip)
+        # endif // QT_CONFIG(tooltip)
         # self.tabWidget.setTabText(self.tabWidget.indexOf(self.bookmarkTab), QCoreApplication.translate("MainWindow", u"Bookmarks", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.pagesTab), QCoreApplication.translate("MainWindow", u"Pages", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.pagesTab),
+                                  QCoreApplication.translate("MainWindow", u"Pages", None))
         self.menuFile.setTitle(QCoreApplication.translate("MainWindow", u"File", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
         self.menuView.setTitle(QCoreApplication.translate("MainWindow", u"View", None))
     # retranslateUi
-

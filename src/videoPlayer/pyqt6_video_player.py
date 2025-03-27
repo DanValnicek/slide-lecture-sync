@@ -29,7 +29,7 @@ def get_supported_mime_types():
     return result
 
 
-class MainWindow(QMainWindow):
+class VideoPlayerWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -115,6 +115,12 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self._ensure_stopped()
         event.accept()
+
+    def seek_position(self, position):
+        if self._player.mediaStatus() in [QMediaPlayer.NoMedia, QMediaPlayer.InvalidMedia]:
+            self.open()
+        self._player.setPosition(position)
+
 
     @Slot()
     def open(self):
@@ -203,10 +209,20 @@ class MainWindow(QMainWindow):
                                                 QAudio.VolumeScale.LinearVolumeScale)
         self._audio_output.setVolume(self.volumeValue)
 
+    def openWindow(self):
+        available_geometry = self.screen().availableGeometry()
+        self.resize(available_geometry.width() / 3,
+                    available_geometry.height() / 2)
+        self.show()
+
+    def get_position_changed_signal(self):
+        return self._player.positionChanged
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    main_win = MainWindow()
+    main_win = VideoPlayerWindow()
     available_geometry = main_win.screen().availableGeometry()
     main_win.resize(available_geometry.width() / 3,
                     available_geometry.height() / 2)

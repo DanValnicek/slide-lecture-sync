@@ -131,8 +131,8 @@ class SlideMatcher:
             return
         return homog
 
-    def matched_slide(self, frame, debug_info: list = None, mask=None):
-        slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, mask)
+    def matched_slide(self, frame, debug_info: list = None):
+        slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, None)
         picked_descriptors = []
         picked_slides = []
         homographies = dict()
@@ -179,8 +179,8 @@ class SlideMatcher:
                 #                     reverse=True)
         match_histogram = self.pick_best_slide(picked_descriptors, picked_slides)
         if match_histogram == {}:
-            return match_histogram, None, None, None
-        return match_histogram, max(match_histogram, key=match_histogram.get), debug_info, mask
+            return match_histogram, None, None
+        return match_histogram, max(match_histogram, key=match_histogram.get), debug_info
 
     def descIdxToSlideIdx(self, train_id):
         return bisect(self.last_slide_kp_idx, train_id)

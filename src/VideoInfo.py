@@ -1,16 +1,20 @@
 import json
+from bisect import bisect
 from datetime import timedelta
 from pathlib import Path
+
 from pypdf import PdfWriter, PdfReader
 from pypdf.generic import ArrayObject, NameObject, DictionaryObject, NumberObject
 
 CUSTOM_EXTENSION_NAME = '/DANV_SlideVideoSync'
 CUSTOM_INTERVALS_SUBKEY_NAME = "/SlideAppearanceIntervals"
 
+
 class PresentationSlideIntervals:
 
     def __init__(self, pdf_path: Path | None = None):
         self.slide_intervals = dict()
+        self.inverted_slide_intervals = list()
         if pdf_path is None:
             return
         pdf_reader = PdfReader(pdf_path.resolve())
@@ -24,22 +28,28 @@ class PresentationSlideIntervals:
     def add_point_to_slides(self, slide_n, time_ms):
         if slide_n is None:
             return
+        self.inverted_slide_intervals = []
         slide_int = self.slide_intervals.get(slide_n, [])
         for i, interval in enumerate(slide_int):
             start, end = interval
+            if start <= time_ms <= end:
+                return
             if abs(time_ms - end) <= 1000:
                 slide_int[i][1] = time_ms
                 return
             if abs(start - time_ms) <= 1000:
                 slide_int[i][0] = time_ms
                 return
-            if start <= time_ms <= end:
-                return
         slide_int.append([time_ms, time_ms])
         self.slide_intervals[slide_n] = slide_int
 
+    def are_empty(self):
+        if self.slide_intervals is None or len(self.slide_intervals) == 0:
+            return True
+        return False
+
     def get_intervals(self, slide_number):
-        intervals = self.slide_intervals[slide_number]
+        intervals = self.slide_intervals.get(slide_number, [])
         intervals.sort(key=lambda x: x[0])
         i = 0
         while i < len(intervals) - 1:
@@ -50,6 +60,20 @@ class PresentationSlideIntervals:
                 i += 1
         self.slide_intervals[slide_number] = intervals
         return intervals
+
+    def get_slide_from_position(self, position_msec):
+        if self.inverted_slide_intervals is None or len(self.inverted_slide_intervals) == 0:
+            self.inverted_slide_intervals = [
+                (start, end, slide_id) for slide_id, interval_lists in self.slide_intervals.items()
+                for start, end in interval_lists
+            ]
+            self.inverted_slide_intervals.sort(key=lambda x: x[0])
+        i = bisect.bisect_right(self.inverted_slide_intervals, (position_msec, float('inf'), float('inf')))
+        if i:
+            candidate_slide = self.inverted_slide_intervals[i - 1]
+            if candidate_slide[0] <= position_msec <= candidate_slide[1]:
+                return candidate_slide[2]
+        return None
 
     def compile_pdf_w_timestamps(self, original_pdf_path: Path, output_path: Path):
         writer = PdfWriter("new.pdf", original_pdf_path)

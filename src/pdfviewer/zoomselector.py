@@ -40,7 +40,7 @@ class ZoomSelector(QComboBox):
 
     @Slot()
     def reset(self):
-        self.setCurrentIndex(1)  # 100%
+        self.setCurrentIndex(1)  # Fit Page
 
     @Slot(str)
     def on_current_text_changed(self, text):
