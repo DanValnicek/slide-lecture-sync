@@ -215,9 +215,12 @@ class VideoPlayerWindow(QMainWindow):
                     available_geometry.height() / 2)
         self.show()
 
+    @property
     def get_position_changed_signal(self):
         return self._player.positionChanged
 
+    def get_video_position(self):
+        return self._player.position()
 
 
 if __name__ == '__main__':

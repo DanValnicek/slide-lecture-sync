@@ -15,7 +15,7 @@ from PySide6.QtPdfWidgets import QPdfView
 from PySide6.QtWidgets import (QMenu,
                                QMenuBar, QSizePolicy, QSplitter, QStatusBar,
                                QTabWidget, QToolBar, QVBoxLayout,
-                               QWidget)
+                               QWidget, QWidgetAction)
 
 from src.VideoPresentationProcessingWidget import VideoPresentationProcessingWidget
 from src.pdfviewer.videoOpener import VideoOpener
@@ -152,8 +152,12 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addWidget(self.splitter)
 
+        self.mainToolBar = QToolBar(MainWindow)
+        action = QWidgetAction(self.mainToolBar)
         self.openVidBtn = VideoOpener(MainWindow.document_location_changed, self.pdfView)
+        self.openVidBtn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.openVidBtn.setObjectName(u"openVidBtn")
+        action.setDefaultWidget(self.openVidBtn)
 
         self.verticalLayout.addWidget(self.widget)
 
@@ -168,7 +172,6 @@ class Ui_MainWindow(object):
         self.menuView = QMenu(self.menuBar)
         self.menuView.setObjectName(u"menuView")
         MainWindow.setMenuBar(self.menuBar)
-        self.mainToolBar = QToolBar(MainWindow)
         self.mainToolBar.setObjectName(u"mainToolBar")
         self.mainToolBar.setMovable(False)
         self.mainToolBar.setFloatable(False)
@@ -198,7 +201,7 @@ class Ui_MainWindow(object):
         self.mainToolBar.addSeparator()
         self.mainToolBar.addAction(self.actionBack)
         self.mainToolBar.addAction(self.actionForward)
-        self.mainToolBar.addWidget(self.openVidBtn)
+        self.mainToolBar.addAction(action)
 
         self.retranslateUi(MainWindow)
 

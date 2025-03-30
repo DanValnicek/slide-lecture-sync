@@ -68,7 +68,7 @@ class PresentationSlideIntervals:
                 for start, end in interval_lists
             ]
             self.inverted_slide_intervals.sort(key=lambda x: x[0])
-        i = bisect.bisect_right(self.inverted_slide_intervals, (position_msec, float('inf'), float('inf')))
+        i = bisect(self.inverted_slide_intervals, (position_msec, float('inf'), float('inf')))
         if i:
             candidate_slide = self.inverted_slide_intervals[i - 1]
             if candidate_slide[0] <= position_msec <= candidate_slide[1]:

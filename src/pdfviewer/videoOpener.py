@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QTimer, Qt, QPoint
 from PySide6.QtCore import Slot, QUrl
-from PySide6.QtWidgets import QWidget, QPushButton, QCheckBox, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QPushButton, QCheckBox, QHBoxLayout, QSizePolicy
 
 from src.VideoInfo import PresentationSlideIntervals
 from src.videoPlayer.pyqt6_video_player import VideoPlayerWindow
@@ -20,11 +20,19 @@ class VideoOpener(QWidget):
         self.scroll_to_vid_current_slide = QPushButton("To current slide")
         self.follow_vid_checkbox = QCheckBox("Follow video")
         doc_loc_sig.connect(self.document_changed)
-        self.open_vid_here_btn.connect(self.open_vid_here)
+        self.open_vid_here_btn.clicked.connect(self.open_vid_here)
         self.follow_vid_checkbox.stateChanged.connect(self.folow_video_state_changed)
-        self.scroll_to_vid_current_slide.connect(lambda:self.jump_to_slide_at_current_video_position(self.video_player.))
+        self.scroll_to_vid_current_slide.clicked.connect(
+            lambda: self.jump_to_slide_at_current_video_position(self.video_player.get_video_position())
+        )
+        self.follow_vid_connected = False
+        self.init_ui()
 
     def init_ui(self):
+
+        self.open_vid_here_btn.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.scroll_to_vid_current_slide.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
         layout = QHBoxLayout()
         layout.addWidget(self.open_vid_here_btn)
         layout.addWidget(self.scroll_to_vid_current_slide)
@@ -39,17 +47,24 @@ class VideoOpener(QWidget):
             self.setDisabled(True)
             return
         self.setDisabled(False)
-        self.video_player.get_position_changed_signal
 
     def folow_video_state_changed(self, state):
-        if state == Qt.Checked:
-            self.jump_to_slide_at_current_video_position.connect(self.video_player.get_position_changed_signal())
+        if state == Qt.Checked.value:
+            if self.follow_vid_connected or self.video_player is None:
+                return
+            self.video_player.get_position_changed_signal.connect(self.jump_to_slide_at_current_video_position)
+            self.follow_vid_connected = True
         else:
-            self.jump_to_slide_at_current_video_position.disconnect(self.video_player.get_position_changed_signal())
+            if not self.follow_vid_connected or self.video_player is None:
+                return
+            self.video_player.get_position_changed_signal.disconnect(self.jump_to_slide_at_current_video_position)
+            self.follow_vid_connected = False
 
     @Slot(int)
     def jump_to_slide_at_current_video_position(self, pos_msec):
         slide_id = self.slide_intervals.get_slide_from_position(pos_msec)
+        if slide_id is None:
+            return
         nav = self.pdf_view.pageNavigator()
         nav.jump(slide_id, QPoint(), nav.currentZoom())
 
