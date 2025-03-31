@@ -1,5 +1,5 @@
+name: BP_SlideVideoSync
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - cairo
