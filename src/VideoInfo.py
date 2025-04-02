@@ -4,10 +4,9 @@ from datetime import timedelta
 from pathlib import Path
 
 from pypdf import PdfWriter, PdfReader
-from pypdf.generic import ArrayObject, NameObject, DictionaryObject, NumberObject
+from pypdf.generic import ArrayObject, NameObject, DictionaryObject, NumberObject, TextStringObject
 
-CUSTOM_EXTENSION_NAME = '/DANV_SlideVideoSync'
-CUSTOM_INTERVALS_SUBKEY_NAME = "/SlideAppearanceIntervals"
+from src.PdfExtender import PdfExtender
 
 
 class PresentationSlideIntervals:
@@ -19,11 +18,11 @@ class PresentationSlideIntervals:
             return
         pdf_reader = PdfReader(pdf_path.resolve())
         for slide in pdf_reader.pages:
-            if CUSTOM_EXTENSION_NAME not in slide:
+            if PdfExtender.EXTENSION_NAME not in slide:
                 continue
-            if CUSTOM_INTERVALS_SUBKEY_NAME not in slide[CUSTOM_EXTENSION_NAME]:
+            if PdfExtender.INTERVALS_SUBKEY_NAME not in slide[PdfExtender.EXTENSION_NAME]:
                 continue
-            self.slide_intervals[slide.page_number] = slide[CUSTOM_EXTENSION_NAME][CUSTOM_INTERVALS_SUBKEY_NAME]
+            self.slide_intervals[slide.page_number] = slide[PdfExtender.EXTENSION_NAME][PdfExtender.INTERVALS_SUBKEY_NAME]
 
     def add_point_to_slides(self, slide_n, time_ms):
         if slide_n is None:
@@ -77,9 +76,10 @@ class PresentationSlideIntervals:
 
     def compile_pdf_w_timestamps(self, original_pdf_path: Path, output_path: Path):
         writer = PdfWriter("new.pdf", original_pdf_path)
+        PdfExtender.add_extension_info(writer)
         for i, intervals in self.slide_intervals.items():
-            writer.pages[i][NameObject(CUSTOM_EXTENSION_NAME)] = DictionaryObject(
-                {NameObject(CUSTOM_INTERVALS_SUBKEY_NAME): ArrayObject(
+            writer.pages[i][NameObject(PdfExtender.EXTENSION_NAME)] = DictionaryObject(
+                {NameObject(PdfExtender.INTERVALS_SUBKEY_NAME): ArrayObject(
                     [ArrayObject([NumberObject(start), NumberObject(end)]) for start, end in intervals])}
             )
         with open(output_path, "wb") as f:
