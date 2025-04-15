@@ -8,7 +8,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QCoreApplication, QUrl
 
-from mainwindow import MainWindow
+from src.pdfviewer.mainwindow import MainWindow
 
 """PySide6 port of the pdfwidgets/pdfviewer example from Qt v6.x"""
 

@@ -1,12 +1,13 @@
 import json
+import sys
 from bisect import bisect
-from datetime import timedelta
 from pathlib import Path
 
 from pypdf import PdfWriter, PdfReader
 from pypdf.generic import ArrayObject, NameObject, DictionaryObject, NumberObject, TextStringObject
 
 from src.PdfExtender import PdfExtender
+from src.utils import ms_to_hms, hms_to_ms
 
 
 class PresentationSlideIntervals:
@@ -22,7 +23,8 @@ class PresentationSlideIntervals:
                 continue
             if PdfExtender.INTERVALS_SUBKEY_NAME not in slide[PdfExtender.EXTENSION_NAME]:
                 continue
-            self.slide_intervals[slide.page_number] = slide[PdfExtender.EXTENSION_NAME][PdfExtender.INTERVALS_SUBKEY_NAME]
+            self.slide_intervals[slide.page_number] = slide[PdfExtender.EXTENSION_NAME][
+                PdfExtender.INTERVALS_SUBKEY_NAME]
 
     def add_point_to_slides(self, slide_n, time_ms):
         if slide_n is None:
@@ -85,23 +87,21 @@ class PresentationSlideIntervals:
         with open(output_path, "wb") as f:
             writer.write(f)
 
-    def toJSON(self):
-        intervals_serialized = {
-            str(key): value for key, value in self.slide_intervals.items()
-        }
-        data = {
-            "intervals": intervals_serialized,
-            # "presentation_hash": self.presentation_hash.hex()
-        }
-        return json.dumps(data)
-
     @staticmethod
-    def ms_to_hms(time_ms):
-        return str(timedelta(milliseconds=time_ms))
+    def from_JSON(json_str):
+        data = json.load(json_str)  # Parse JSON
+        intervals_serialized = data.get("intervals", {})
+        slide_intervals = {
+            int(key): [(hms_to_ms(t_s), hms_to_ms(t_e)) for t_s, t_e in value]
+            for key, value in intervals_serialized.items()
+        }
+        presentation_intervals = PresentationSlideIntervals()
+        presentation_intervals.slide_intervals = slide_intervals
+        return presentation_intervals
 
-    def to_json_human_readable(self):
+    def to_JSON(self):
         intervals_serialized = {
-            str(key): [[self.ms_to_hms(t_s), self.ms_to_hms(t_e)] for t_s, t_e in value] for key, value in
+            str(key): [[ms_to_hms(t_s), ms_to_hms(t_e)] for t_s, t_e in value] for key, value in
             self.slide_intervals.items()
         }
         data = {
@@ -109,3 +109,12 @@ class PresentationSlideIntervals:
             # "presentation_hash": self.presentation_hash.hex()
         }
         return json.dumps(data)
+
+
+if __name__ == '__main__':
+    pdf_path = sys.argv[1]
+    pres_intervals = PresentationSlideIntervals(Path(pdf_path))
+    print(pres_intervals.to_JSON())
+    pres_intervals.get_slide_from_position(0)
+    readable_inverted = [(ms_to_hms(s), ms_to_hms(e), sl) for s, e, sl in pres_intervals.inverted_slide_intervals]
+    print(readable_inverted)

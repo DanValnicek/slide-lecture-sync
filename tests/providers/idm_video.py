@@ -5,7 +5,7 @@ from typing import Any
 import cv2
 
 from . import DataProvider
-from ..data.IDM_slides import slides_with_timestamps
+from ..test_data.IDM_slides import slides_with_timestamps
 
 
 class IDMVideoProvider(DataProvider):
@@ -18,7 +18,7 @@ class IDMVideoProvider(DataProvider):
 
     @property
     def presentation_path(self) -> Path:
-        return Path(__file__).parent.parent / Path("data/grafy1.pdf")
+        return Path(__file__).parent.parent / Path("test_data/grafy1.pdf")
 
     def test_cases(self):
         return slides_with_timestamps
@@ -32,4 +32,4 @@ class IDMVideoProvider(DataProvider):
         if success:
         # subtract 1 to align with 0 based counting
             return test_identifier['label'] - 1, frame
-        raise ArgumentError('Invalid identifier!')
+        raise ArgumentError(None,'Invalid identifier!')

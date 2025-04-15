@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 from __future__ import annotations
 
+import gc
+
 from src.videoPlayer.SeekBar import SeekBar
 from src.videoPlayer.VolumeSlider import VolumeSlider
 
@@ -121,7 +123,6 @@ class VideoPlayerWindow(QMainWindow):
             self.open()
         self._player.setPosition(position)
 
-
     @Slot()
     def open(self):
         self._ensure_stopped()
@@ -130,7 +131,7 @@ class VideoPlayerWindow(QMainWindow):
         is_windows = sys.platform == 'win32'
         if not self._mime_types:
             self._mime_types = get_supported_mime_types()
-            if (is_windows and AVI not in self._mime_types):
+            if is_windows and AVI not in self._mime_types:
                 self._mime_types.append(AVI)
             elif MP4 not in self._mime_types:
                 self._mime_types.append(MP4)
@@ -221,6 +222,14 @@ class VideoPlayerWindow(QMainWindow):
 
     def get_video_position(self):
         return self._player.position()
+
+    def closeEvent(self, event):
+        """Ensure widget is deleted when closed."""
+        self._player.stop()
+        self._player.deleteLater()
+        self.deleteLater()  # Schedule deletion
+        gc.collect()
+        event.accept()  # Allow closing
 
 
 if __name__ == '__main__':

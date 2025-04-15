@@ -78,8 +78,10 @@ class SlideMatcher:
 
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
         kp, desc = self.sift_detector.detectAndCompute(frame, mask)
-        matches = self.flannIndex.knnSearch(desc, 2)
         instance_cnt = defaultdict(list)
+        if desc is None:
+            return instance_cnt
+        matches = self.flannIndex.knnSearch(desc, 2)
         for i, m in enumerate(zip(matches[0], matches[1])):
             desc_indices = m[0]
             desc_distance = m[1]
@@ -206,9 +208,11 @@ class SlideMatcher:
         self.keypoints = []
         for slide in self.presentation.get_all_slides():
             kp, desc = (self.sift_detector.detectAndCompute(np.array(slide.image), None))
-            self.descriptors.append(desc)
             self.keypoints += kp
             self.last_slide_kp_idx.append(len(self.keypoints))
+            if desc is None:
+                continue
+            self.descriptors.append(desc)
         np.set_printoptions(threshold=sys.maxsize)
         self.descriptors = np.vstack(self.descriptors)
         self.flannIndex = cv2.flann.Index(self.descriptors, {"algorithm": 1, "trees": 1})

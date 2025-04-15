@@ -3,11 +3,11 @@ from pypdf.generic import NameObject, DictionaryObject, NumberObject, TextString
 
 
 class PdfExtender:
-    EXTENSION_PREFIX = "DANV"
+    EXTENSION_PREFIX = "/DANV"
     EXTENSION_NAME = '/DANV_SlideVideoSync'
-    INTERVALS_SUBKEY_NAME = "/SlideAppearanceIntervals"
+    INTERVALS_SUBKEY_NAME = r"/SlideAppearanceIntervals"
     EXTENSION_VERSION = 1
-    EXTENSION_URL = "https://github.com/DanValnicek/pdf-ext-slide-video-sync"
+    EXTENSION_URL = r"https://github.com/DanValnicek/pdf-ext-slide-video-sync"
 
     @staticmethod
     def add_extension_info(pdf_writer: PdfWriter):

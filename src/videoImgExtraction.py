@@ -27,7 +27,6 @@ if __name__ == '__main__':
     pos = 0
     matching_plots = []
     slide_intervals = PresentationSlideIntervals()
-    optimization_mask = None
     while pos < video_duration:
         start_time = datetime.now()
         pos += 1000
@@ -37,7 +36,7 @@ if __name__ == '__main__':
             continue
         hist, slide_id, _ = slide_matcher.matched_slide(frame)
         slide_intervals.add_point_to_slides(slide_id, pos)
-        print(slide_intervals.to_json_human_readable())
+        print(slide_intervals.to_JSON())
     video.release()
     slide_intervals.compile_pdf_w_timestamps(presentation.get_pdf_file_path(), "pdf_w_timings.pdf")
 

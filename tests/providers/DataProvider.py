@@ -13,7 +13,7 @@ class DataProvider(ABC):
 
     @abstractmethod
     def test_cases(self) -> Any:
-        """Return some identifier of the data that needs to be used to get the right image."""
+        """Return some identifier of the test_data that needs to be used to get the right image."""
         pass
 
     def get_test_input(self, test_identifier: Any) -> tuple[int, np.ndarray]:

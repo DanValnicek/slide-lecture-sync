@@ -10,6 +10,7 @@ from pypdf import PdfWriter
 from src.Presentation import Presentation
 from .providers import *
 from src.SlideMatcher import SlideMatcher
+from .providers.interval_video_provider import IntervalVideoProvider
 
 out_dir = os.path.join(Path(__file__).parent.resolve(), "test_output/")
 
@@ -28,8 +29,10 @@ class FailureInfo:
 
 
 def create_failure_report_single_match(output_path, failure_info: FailureInfo):
-    if(failure_info.expected_slide is None):
+    if failure_info.expected_slide is None:
         failure_info.expected_slide = -1
+    if failure_info.matched_slide is None:
+        failure_info.matched_slide = -1
     with PdfPages(output_path / f"slide{failure_info.expected_slide:03d}-report.pdf") as pdf:
         fig, axes = plt.subplots(1, 1, figsize=(10, 10))  # Two rows: image + bar chart
         axes.bar(failure_info.match_score_chart.keys(), failure_info.match_score_chart.values(), align='center',
@@ -65,7 +68,7 @@ def create_failure_report_single_match(output_path, failure_info: FailureInfo):
             plt.close(fig)  # Close figure to free up memory
             # fig, axes = plt.subplots(1, 1, figsize=(5, 5))  # Two rows: image + bar chart
             # axes.table(
-            #     cellText=data['homog2'],
+            #     cellText=test_data['homog2'],
             #     cellLoc='center',
             #     loc='center'
             # )
@@ -94,11 +97,21 @@ def create_failure_report(output_path, tmp_out_dir, passed, total_test_count):
         merger.write(f)
 
 
-data_path = Path(__file__).parent / Path('data')
+test_data_path = Path(__file__).parent / Path('test_data')
+data_path = Path(__file__).parents[1] / Path('data')
+videos_path = data_path / Path("videos")
+pdfs_path = data_path / Path("pdfs")
 providers = [
     IDMVideoProvider(),
-    CVATXMLProvider(data_path / 'IPK_test_imgs', data_path / 'annotations.xml',
-                    data_path / 'IPK2023-24L-07-MULTICAST.pdf')
+    CVATXMLProvider(test_data_path / 'IPK_test_imgs',
+                    test_data_path / 'annotations.xml',
+                    test_data_path / 'IPK2023-24L-07-MULTICAST.pdf'),
+    IntervalVideoProvider(test_data_path / 'INP.json',
+                          videos_path / "INP_2023-10-24_1080p.mp4",
+                          pdfs_path / 'inp2023_06alu.pdf'),
+    IntervalVideoProvider(test_data_path / 'IOS.json',
+                          videos_path / "IOS_2023-02-22_1080p.mp4",
+                          pdfs_path / "ios-prednaska-03.pdf"),
 ]
 
 

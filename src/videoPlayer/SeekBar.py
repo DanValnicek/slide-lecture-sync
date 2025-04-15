@@ -4,7 +4,8 @@ from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QProgressBar, QWidget, QHBoxLayout, QLabel
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtGui import QMouseEvent
-from scipy.constants import milli
+
+from src.utils import ms_to_hms
 
 
 class SeekBar(QWidget):
@@ -69,15 +70,8 @@ class SeekBar(QWidget):
         layout.addWidget(self.progressBar)
         self.setLayout(layout)
 
-    @staticmethod
-    def format_msec(time_msec):
-        total_seconds = time_msec // 1000
-        h, remainder = divmod(total_seconds, 3600)
-        m, s = divmod(total_seconds, 60)
-        return f"{h:02}:{m:02}:{s:02}"
-
     def updateTime(self, time_msec):
-        self.curr_time_label.setText(f"{self.format_msec(time_msec)}")
+        self.curr_time_label.setText(f"{ms_to_hms(time_msec)}")
 
     def updateDuration(self, new_duration):
-        self.duration_label.setText(f"{self.format_msec(new_duration)}")
+        self.duration_label.setText(f"{ms_to_hms(new_duration)}")

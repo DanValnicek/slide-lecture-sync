@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import math
 import sys
-from pathlib import Path
 
-from PySide6.QtPdf import QPdfBookmarkModel, QPdfDocument
+from PySide6.QtCore import QPoint, QStandardPaths, QUrl, Slot, Signal
+from PySide6.QtPdf import QPdfDocument
 from PySide6.QtPdfWidgets import QPdfView
 from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMessageBox,
                                QSpinBox)
@@ -16,13 +16,14 @@ from src.VideoInfo import PresentationSlideIntervals
 from src.VideoPresentationProcessingWidget import VideoPresentationProcessingWidget
 from zoomselector import ZoomSelector
 from ui_mainwindow import Ui_MainWindow
+from zoomselector import ZoomSelector
 
 ZOOM_MULTIPLIER = math.sqrt(2.0)
 
 
 class MainWindow(QMainWindow):
-
     document_location_changed = Signal(QUrl)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
