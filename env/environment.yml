@@ -1,4 +1,4 @@
-name: BP_SlideVideoSync
+name: slide-lecture-sync
 channels:
   - conda-forge
 dependencies:
