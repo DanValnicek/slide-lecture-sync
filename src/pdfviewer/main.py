@@ -8,12 +8,12 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QCoreApplication, QUrl
 
-from src.pdfviewer.mainwindow import MainWindow
+from .mainwindow import MainWindow
 
 """PySide6 port of the pdfwidgets/pdfviewer example from Qt v6.x"""
 
 
-if __name__ == "__main__":
+def main():
     argument_parser = ArgumentParser(description="PDF Viewer",
                                      formatter_class=RawTextHelpFormatter)
     argument_parser.add_argument("file", help="The file to open",
@@ -26,3 +26,6 @@ if __name__ == "__main__":
     if options.file:
         w.open(QUrl.fromLocalFile(options.file))
     sys.exit(QCoreApplication.exec())
+
+if __name__ == "__main__":
+    main()

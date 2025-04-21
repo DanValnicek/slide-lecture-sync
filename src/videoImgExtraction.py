@@ -62,6 +62,8 @@ class SlideIntervalFinder(QThread):
         pos = 0
         slide_intervals = PresentationSlideIntervals()
         while pos < self.video_duration:
+            if self.isInterruptionRequested():
+                break
             pos += 1000
             self.video.set(cv2.CAP_PROP_POS_MSEC, pos)
             got_img, frame = self.video.read()

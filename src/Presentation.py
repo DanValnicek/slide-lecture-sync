@@ -1,11 +1,10 @@
 import logging
-import tempfile
 from abc import ABC
 from pathlib import Path
 from typing import List, Tuple
 
 from PIL.Image import Image
-from pdf2image import convert_from_path
+from pymupdf import pymupdf
 
 
 class PresentationCreator:
@@ -95,9 +94,8 @@ class PdfPresentation(Presentation):
     def __init__(self, path: Path):
         self.path = Path(path)
         # Convert PDF to list of images (one per page)
-        with tempfile.TemporaryDirectory() as temp_dir:
-            slides = convert_from_path(path, output_file='pdf', fmt="ppm", output_folder=temp_dir, size=(480, None))
-            self._slides = [PresentationSlide(img=img.copy(), page_number=i, presentation=self) for i, img in
+        slides = [page.get_pixmap(dpi=43).pil_image() for page in pymupdf.open(self.path)]
+        self._slides = [PresentationSlide(img=img, page_number=i, presentation=self) for i, img in
                            enumerate(slides)]
 
         logging.getLogger(__name__).debug("file count: " + str(self.get_slide_cnt()))

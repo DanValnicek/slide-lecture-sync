@@ -14,9 +14,8 @@ from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot, Qt, 
 
 from src.VideoInfo import PresentationSlideIntervals
 from src.VideoPresentationProcessingWidget import VideoPresentationProcessingWidget
-from zoomselector import ZoomSelector
-from ui_mainwindow import Ui_MainWindow
-from zoomselector import ZoomSelector
+from .ui_mainwindow import Ui_MainWindow
+from .zoomselector import ZoomSelector
 
 ZOOM_MULTIPLIER = math.sqrt(2.0)
 

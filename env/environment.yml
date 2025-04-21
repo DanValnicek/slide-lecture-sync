@@ -2,14 +2,11 @@ name: slide-lecture-sync
 channels:
   - conda-forge
 dependencies:
-  - cairo
   - ffmpeg
   - matplotlib
   - numpy
-  - pdf2image
   - pillow
   - pip
-  - poppler
   - pypdf
   - pytest
   - python
@@ -20,3 +17,4 @@ dependencies:
       - opencv-python
       - pyside6
       - shapely
+      - PyMuPDF

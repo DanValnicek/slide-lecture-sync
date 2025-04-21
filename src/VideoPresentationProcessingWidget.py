@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QFileDialog, QProgressBar, QLabel, QVBoxLayout, QPushButton
+from PySide6.QtWidgets import QWidget, QFileDialog, QProgressBar, QVBoxLayout, QPushButton
 from pathlib import Path
 
 from src.videoImgExtraction import SlideIntervalFinder
@@ -8,6 +8,7 @@ from src.videoImgExtraction import SlideIntervalFinder
 class VideoPresentationProcessingWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.out_pdf_path = ""
         self.video_path = ""
         self.pdf_path = ""
         self.init_ui()
@@ -56,9 +57,19 @@ class VideoPresentationProcessingWidget(QWidget):
             self.select_out_pdf_btn.setText(f"PDF: {file_name}")
 
     def start_processing(self):
+        self.progress_bar.setRange(0, 0)
         if not self.video_path or not self.pdf_path or not self.out_pdf_path:
+            self.progress_bar.setMaximum(1)
+            self.progress_bar.setValue(0)
             self.progress_bar.setFormat("Please select all files")
+            self.progress_bar.repaint()
             return
+        self.progress_bar.setFormat("Processing in progress")
+        self.progress_bar.repaint()
+        self.start_btn.setDisabled(True)
+        self.select_video_btn.setDisabled(True)
+        self.select_pdf_btn.setDisabled(True)
+        self.select_out_pdf_btn.setDisabled(True)
 
         self.worker = SlideIntervalFinder(self.video_path, self.pdf_path, self.out_pdf_path)
         self.progress_bar.setValue(0)
@@ -66,3 +77,9 @@ class VideoPresentationProcessingWidget(QWidget):
         self.worker.progres_updated.connect(self.progress_bar.setValue)
         self.worker.finished.connect(lambda: self.progress_bar.setFormat("Processing Complete"))
         self.worker.start()
+
+    def closeEvent(self, event):
+        if self.worker.isRunning():
+            self.worker.requestInterruption()
+            self.worker.wait()
+        event.accept()
