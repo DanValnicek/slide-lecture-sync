@@ -71,6 +71,7 @@ class SlideIntervalFinder(QThread):
                 continue
             hist, slide_id, _ = self.slide_matcher.matched_slide(frame)
             slide_intervals.add_point_to_slides(slide_id, pos)
+            logger.debug(slide_intervals.to_JSON())
             self.progres_updated.emit(pos // 1000)
         self.video.release()
         slide_intervals.compile_pdf_w_timestamps(self.presentation.get_pdf_file_path(), self.out_pdf_path)

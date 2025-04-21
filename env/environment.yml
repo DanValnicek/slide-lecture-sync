@@ -1,6 +1,7 @@
 name: slide-lecture-sync
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - ffmpeg
   - matplotlib
@@ -12,9 +13,12 @@ dependencies:
   - python
   - scikit-learn
   - pyinstaller
+  - pyside6
   - pip:
       - opencv-contrib-python
       - opencv-python
       - pyside6
+      - PySide6-Addons
+      - shiboken6
       - shapely
       - PyMuPDF
