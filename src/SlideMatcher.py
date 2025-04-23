@@ -207,9 +207,11 @@ class SlideMatcher:
         self.keypoints = []
         for slide in self.presentation.get_all_slides():
             kp, desc = (self.sift_detector.detectAndCompute(np.array(slide.image), None))
-            self.descriptors.append(desc)
             self.keypoints += kp
             self.last_slide_kp_idx.append(len(self.keypoints))
+            if desc is None:
+                continue
+            self.descriptors.append(desc)
         np.set_printoptions(threshold=sys.maxsize)
         self.descriptors = np.vstack(self.descriptors)
         self.flannIndex = cv2.flann.Index(self.descriptors, {"algorithm": 1, "trees": 1})
