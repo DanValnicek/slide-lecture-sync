@@ -5,7 +5,7 @@ from typing import Any
 import cv2
 
 from . import DataProvider
-from ..test_data.IDM_slides import slides_with_timestamps
+from tests.test_data.IDM_slides import slides_with_timestamps
 
 
 class IDMVideoProvider(DataProvider):
