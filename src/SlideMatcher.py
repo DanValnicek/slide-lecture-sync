@@ -173,6 +173,8 @@ class SlideMatcher:
                         best_keypoints1,
                         [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
                         None,
+                        matchColor=(0, 255, 0),
+                        singlePointColor=(255,0,0),
                         flags=cv2.DrawMatchesFlags_DEFAULT),
                     'homog': homog,
                     'warped_image': warped_img})

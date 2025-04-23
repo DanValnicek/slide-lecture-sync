@@ -16,9 +16,15 @@ class IDMVideoProvider(DataProvider):
         if self.video is not None:
             self.video.release()
 
+    def get_test_suite_name(self):
+        return "IDM_video"
+
     @property
     def presentation_path(self) -> Path:
         return Path(__file__).parent.parent / Path("test_data/grafy1.pdf")
+
+    def get_test_cnt(self):
+        return len(slides_with_timestamps)
 
     def test_cases(self):
         return slides_with_timestamps
@@ -30,6 +36,6 @@ class IDMVideoProvider(DataProvider):
         self.video.set(cv2.CAP_PROP_POS_MSEC, test_identifier['time'] / 1000)
         success, frame = self.video.read()
         if success:
-        # subtract 1 to align with 0 based counting
+            # subtract 1 to align with 0 based counting
             return test_identifier['label'] - 1, frame
-        raise ArgumentError(None,'Invalid identifier!')
+        raise ArgumentError(None, 'Invalid identifier!')

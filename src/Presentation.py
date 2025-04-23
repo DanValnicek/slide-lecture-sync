@@ -1,5 +1,6 @@
 import logging
 from abc import ABC
+from math import sqrt
 from pathlib import Path
 from typing import List, Tuple
 
@@ -94,9 +95,14 @@ class PdfPresentation(Presentation):
     def __init__(self, path: Path):
         self.path = Path(path)
         # Convert PDF to list of images (one per page)
-        slides = [page.get_pixmap(dpi=43).pil_image() for page in pymupdf.open(self.path)]
+        slides = []
+        for page in pymupdf.open(self.path):
+            pdf_width, pdf_height = page.rect.width / 72, page.rect.height / 72
+            corrected_width = 480 / pdf_height * pdf_width
+            dpi = max(round(sqrt(480 * corrected_width / (pdf_width * pdf_height))), 1)
+            slides.append(page.get_pixmap(dpi=dpi).pil_image())
         self._slides = [PresentationSlide(img=img, page_number=i, presentation=self) for i, img in
-                           enumerate(slides)]
+                        enumerate(slides)]
 
         logging.getLogger(__name__).debug("file count: " + str(self.get_slide_cnt()))
 

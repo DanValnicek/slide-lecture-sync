@@ -1,5 +1,6 @@
 from pathlib import Path
 from xml.etree.ElementTree import ElementTree
+
 import cv2
 import numpy as np
 
@@ -11,6 +12,13 @@ class CVATXMLProvider(DataProvider):
         self.image_dir = Path(image_dir)
         self.cvat_xml_path = Path(cvat_xml_path)
         self.presentation_pth = Path(presentation_path)
+        self.test_cnt = 0
+
+    def get_test_suite_name(self):
+        return self.presentation_pth.stem + "xml_annot"
+
+    def get_test_cnt(self):
+        return self.test_cnt
 
     @property
     def presentation_path(self) -> Path:
@@ -27,6 +35,7 @@ class CVATXMLProvider(DataProvider):
             slide_num = image.find(".//tag[@label='Slide']/attribute[@name='SlideNum']").text
             # Add the (SlideNum, filename) tuple to the list
             cases.append((int(slide_num), filename))
+        self.test_cnt = len(cases)
         return cases
 
     def get_test_input(self, test_identifier: tuple[int, str]) -> tuple[int, np.ndarray]:

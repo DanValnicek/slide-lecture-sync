@@ -7,9 +7,17 @@ import numpy as np
 
 class DataProvider(ABC):
     @property
+    def get_test_suite_name(self):
+        ...
+
+    @property
     @abstractmethod
     def presentation_path(self) -> pathlib.Path:
         pass
+
+    @property
+    def get_test_cnt(self):
+        ...
 
     @abstractmethod
     def test_cases(self) -> Any:
