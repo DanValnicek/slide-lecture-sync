@@ -3,11 +3,14 @@ from bisect import bisect
 from collections import defaultdict
 from math import sqrt
 from typing import Sequence
+
 import cv2
 import numpy as np
 from numpy import ndarray
 from shapely.geometry import Polygon, box
+
 from src import Presentation
+from src.utils import warpPerspectivePadded, draw_matches
 
 
 class SlideMatcher:
@@ -30,7 +33,7 @@ class SlideMatcher:
         self.keypoints = []
         self.descriptors = []
 
-    def warp_and_recompute_slide_descriptors(self, frame, homog, slide_idx, dbg_src_pts=None):
+    def warp_and_recompute_slide_descriptors(self, frame, homog, slide_idx, dbg_src_pts=None, outliers=None):
         warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
         kp2, desc2 = self.sift_detector.compute(warped_img, self.slideKeypoints(slide_idx), None)
         slide_descriptors = self.slideDescriptors(slide_idx)
@@ -46,6 +49,7 @@ class SlideMatcher:
         descriptors = list(dict.fromkeys(descriptors))
         if dbg_src_pts is not None:
             dbg_src_pts[:] = [(src_pts2[i], dst_pts2[i]) for i, inlier in enumerate(mask2) if inlier]
+            outliers[:] = [(src_pts2[i], dst_pts2[i]) for i, inlier in enumerate(mask2) if not inlier]
         return descriptors
 
     def pick_best_slide(self, matched_descriptors_from_all, slide_idxs):
@@ -147,15 +151,39 @@ class SlideMatcher:
             )
             if homog is None:
                 continue
+            # cv2.imwrite(f"first_round_matches{slide_idx}.png",
+            #             draw_matches(frame,
+            #                          cv2.cvtColor(np.array(self.presentation.get_slide(slide_idx).image),
+            #                                       cv2.COLOR_RGB2BGR),
+            #                          src_dst_kps, mask))
             dbg_src_pts = []
-            calc_result = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx, dbg_src_pts=dbg_src_pts)
-            if len(calc_result) < 10 or calc_result is None:
-                continue
+            outliers = []
+            calc_result = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx, dbg_src_pts=dbg_src_pts,
+                                                                    outliers=outliers)
+            dbg_inliers = [cv2.KeyPoint(*p[0][0], 10) for p in dbg_src_pts]
+            dbg_outliers = [cv2.KeyPoint(*p[1][0], 10) for p in outliers]
+            dbg_slide_outliers = [cv2.KeyPoint(*p[0][0], 10) for p in outliers]
+            dbg_src_inliers = [cv2.KeyPoint(*p[1][0], 10) for p in outliers]
+            # if len(calc_result) < 10 or calc_result is None:
+            #     continue
 
             homographies[slide_idx] = homog
             picked_descriptors += calc_result
             picked_slides.append(slide_idx)
             warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
+            cv2.imwrite(f"warped_orig{slide_idx}.png", warped_img)
+            _, dst_warped = warpPerspectivePadded(frame, frame, homog)
+
+            cv2.imwrite(f"warped_frame{slide_idx}.png", dst_warped)
+            slide_img = cv2.cvtColor(np.array(self.presentation.get_slide(slide_idx).image), cv2.COLOR_RGB2BGR)
+            slide_outliers = cv2.drawKeypoints(slide_img, dbg_slide_outliers, None, (0, 0, 255))
+            warped_outliers = cv2.drawKeypoints(warped_img, dbg_outliers, None, (0, 0, 255))
+            cv2.imwrite(f"final_matches{slide_idx}.png", draw_matches(warped_outliers, slide_outliers, dbg_src_pts))
+
+            # warp_inliers = cv2.drawKeypoints(warped_img, dbg_inliers, None, (0, 255, 0))
+            # cv2.imwrite(f"warped_inliers_outliers{slide_idx}.png", warp_in_outliers)
+            # slide_kps_img = cv2.drawKeypoints(, dbg_src_inliers, None, (0, 255, 0))
+            # cv2.imwrite(f"slide_inliers{slide_idx}.png", slide_kps_img)
             if debug_info is not None and (debug_info is [] or len(debug_info) <= 3):
                 if len(debug_info) == 3:
                     debug_info.pop(-1)
@@ -174,7 +202,7 @@ class SlideMatcher:
                         [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
                         None,
                         matchColor=(0, 255, 0),
-                        singlePointColor=(255,0,0),
+                        singlePointColor=(255, 0, 0),
                         flags=cv2.DrawMatchesFlags_DEFAULT),
                     'homog': homog,
                     'warped_image': warped_img})

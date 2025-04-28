@@ -24,7 +24,7 @@ if __name__ == '__main__':
     video_duration = video.get(cv2.CAP_PROP_FRAME_COUNT) // video.get(cv2.CAP_PROP_FPS) * 1000
     slide_matcher = SlideMatcher(presentation)
     slide_matcher.create_training_keypoint_set()
-    pos = 60000 * 2
+    pos = 40 * 60 * 1000 + 10 * 1000
     matching_plots = []
     slide_intervals = PresentationSlideIntervals()
     while pos < video_duration:
@@ -35,8 +35,8 @@ if __name__ == '__main__':
         if not got_img:
             continue
         hist, slide_id, dbg = slide_matcher.matched_slide(frame, [])
-        for i, img in enumerate(dbg):
-            cv2.imwrite(f"IPK_match{i}.png", img['visual'])
+        # for i, img in enumerate(dbg):
+        #     cv2.imwrite(f"IPK_match{i}.png", img['visual'])
         break
         slide_intervals.add_point_to_slides(slide_id, pos)
         print(slide_intervals.to_JSON())
