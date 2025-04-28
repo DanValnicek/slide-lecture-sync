@@ -26,40 +26,61 @@
 [//]: # ([![Stargazers][stars-shield]][stars-url])
 
 [//]: # ([![Issues][issues-shield]][issues-url])
-[![project_license][license-shield]][license-url]
 
 [//]: # ([![LinkedIn][linkedin-shield]][linkedin-url])
 
-
+# Lecture slide sync
 
 <!-- PROJECT LOGO -->
 
-<br />
-<div align="center">
-<!--
-  <a href="https://github.com/DanValnicek/slide-lecture-sync">
-    <img src="images/logo.png" alt="Logo" width="80" height="80"> 
-  </a>
--->
+<img alt="Thumbnail" height="400" src="images/Thumbnail_final.svg" width="400" style="display:block; margin: 0 auto"/>
 
-<h3 align="center">Lecture Slide Sync</h3>
+<br>
 
-  <p align="center">
-    A PDF viewer and video player capable of skipping lecture video by slide.
-    Lecture Slide Sync has a functionality enabling automatic slide to frame synchronization.
+[//]: # (<div align="center">)
 
-    <br />
-    <a href="https://github.com/DanValnicek/slide-lecture-sync"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/DanValnicek/slide-lecture-sync">View Demo</a>
-    &middot;
-    <a href="https://github.com/DanValnicek/slide-lecture-sync/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-    &middot;
-    <a href="https://github.com/DanValnicek/slide-lecture-sync/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+[//]: # (<!--)
 
-  </p>
-</div>
+[//]: # (  <a href="https://github.com/DanValnicek/slide-lecture-sync">)
+
+[//]: # (    <img src="images/Thumbnail_final.svg" alt="Logo" width="80" height="80"> )
+
+[//]: # (  </a>)
+
+[//]: # (-->)
+
+[//]: # ()
+
+[//]: # ()
+[//]: # (  <p align="center">)
+
+[//]: # (    A PDF viewer and video player capable of skipping lecture video by slide.)
+
+[//]: # (    Lecture Slide Sync has a functionality enabling automatic slide to frame synchronization.)
+
+[//]: # ()
+[//]: # (    <br />)
+
+[//]: # (    <a href="https://github.com/DanValnicek/slide-lecture-sync"><strong>Explore the docs »</strong></a>)
+
+[//]: # (    <br />)
+
+[//]: # (    <br />)
+
+[//]: # (    <a href="https://github.com/DanValnicek/slide-lecture-sync">View Demo</a>)
+
+[//]: # (    &middot;)
+
+[//]: # (    <a href="https://github.com/DanValnicek/slide-lecture-sync/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>)
+
+[//]: # (    &middot;)
+
+[//]: # (    <a href="https://github.com/DanValnicek/slide-lecture-sync/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>)
+
+[//]: # ()
+[//]: # (  </p>)
+
+[//]: # (</div>)
 
 
 
@@ -95,18 +116,31 @@
 
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+[//]: # (<iframe width="560" height="315")
+
+[//]: # (src="https://youtu.be/Ui0M3u0Rpxk")
+
+[//]: # (frameborder="0")
+
+[//]: # (allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture")
+
+[//]: # (allowfullscreen></iframe>)
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=Ui0M3u0Rpxk"><img src="https://img.youtube.com/vi/Ui0M3u0Rpxk/0.jpg" alt="Youtube video showcase"></a>
+</div>
+
+[//]: # ([![Video showcase]&#40;http://img.youtube.com/vi/Ui0M3u0Rpxk/0.jpg&#41;]&#40;https://youtu.be/Ui0M3u0Rpxk&#41; )
 
 This app was made to make the search for a specific part of lecture easier, by creating a list of time intervals for each slide in a supplied PDF presentation.
 
-for the following: `DanValnicek`, `slide-lecture-sync`, `twitter_handle`, `linkedin_username`, `email_client`, `email`,
-`project_title`, `project_description`, `project_license`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
 
-* [![Next][Next.js]][Next-url]
+[![Python][python-shield]][python-url]
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -119,25 +153,18 @@ for the following: `DanValnicek`, `slide-lecture-sync`, `twitter_handle`, `linke
 This is an example of how you may give instructions on setting up your project locally.
 To get a local copy up and running follow these simple example steps.
 
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
-
 ### Installation
 
-You can download already precompiled .exe from releases,
+You can download already precompiled .exe from releases.
 
+> Currently running on linux doesn't work due to issues with the shiboken6 library.
+ 
 Another option is to clone it and run it yourself using conda: 
 1. Clone the repo
    ```sh
    git clone https://github.com/DanValnicek/slide-lecture-sync.git
    ```
-2. Install conda by following instructions at https://www.anaconda.com/docs/getting-started/miniconda/install#windows-power-shell
+2. Install conda by following instructions at [anaconda.com](https://www.anaconda.com/docs/getting-started/miniconda/install#windows-power-shell)
 3. Enter `./env` and create and activate environment
     ```sh
         cd ./env
@@ -162,11 +189,8 @@ Another option is to clone it and run it yourself using conda:
 
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos
-work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
+The core of the application is a PDF viewer that can be used normally.
+In case 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -238,10 +262,15 @@ Project Link: [https://github.com/DanValnicek/slide-video-sync](https://github.c
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## License
+[![project_license][license-shield]][license-url]
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[python-shield]: https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54
+[python-url]: https://www.python.org/
 
 [stars-shield]: https://img.shields.io/github/stars/DanValnicek/slide-lecture-sync.svg?style=for-the-badge
 
