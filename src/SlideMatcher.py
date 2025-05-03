@@ -82,6 +82,11 @@ class SlideMatcher:
 
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
         kp, desc = self.sift_detector.detectAndCompute(frame, mask)
+        for i,k in enumerate(kp):
+            kp[i].size = 15
+
+        frame_kp = cv2.drawKeypoints(frame, kp, None, (0, 255, 0),flags=cv2.DrawMatchesFlags_DRAW_RICH_KEYPOINTS)
+        cv2.imwrite(f"frame_keypoints{len(kp)}.png",frame_kp)
         instance_cnt = defaultdict(list)
         if desc is None:
             return instance_cnt
