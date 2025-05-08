@@ -7,18 +7,18 @@ import cv2
 import numpy as np
 from numpy import ndarray
 from shapely.geometry import Polygon, box
-from src import Presentation
+from src import Slides
 
 
 class SlideMatcher:
     video: cv2.VideoCapture
-    presentation: Presentation
+    presentation: Slides
     # list of keypoint/descriptor indexes of the last
     last_slide_kp_idx: list
     descriptors: list
     keypoints: Sequence[cv2.KeyPoint]
 
-    def __init__(self, presentation: Presentation):
+    def __init__(self, presentation: Slides):
         self.dataset_tf_idf = []
         self.slide_tf_idf_norms = []
         self.dataset_idf = []
@@ -48,21 +48,21 @@ class SlideMatcher:
             dbg_src_pts[:] = [(src_pts2[i], dst_pts2[i]) for i, inlier in enumerate(mask2) if inlier]
         return descriptors
 
-    def pick_best_slide(self, matched_descriptors_from_all, slide_idxs):
+    def score_by_slide(self, matched_descriptors_from_all, slide_idxs):
         if slide_idxs == []:
             return {}
         if len(slide_idxs) == 1:
             return {slide_idxs[0]: 1}
         unique_descriptors = np.unique(np.vstack([self.descriptors[d] for d in matched_descriptors_from_all]), axis=0)
-        hist = {}
+        scores = {}
         for slide_id in slide_idxs:
             matches = self.matcher.knnMatch(unique_descriptors, self.slideDescriptors(slide_id), k=1)
             distance = sum([1 if m[0].distance < 0.5 else 0 for m in matches])
             score = distance / (sqrt(len(unique_descriptors)) * sqrt(self.slideDescCnt(slide_id)))
             if score < 0.4:
                 continue
-            hist[slide_id] = score
-        return hist
+            scores[slide_id] = score
+        return scores
 
     def find_all_similar_descriptors_indexes(self, desc_index):
         maxResults = 10
@@ -137,7 +137,6 @@ class SlideMatcher:
         slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, None)
         picked_descriptors = []
         picked_slides = []
-        homographies = dict()
         for slide_idx, src_dst_kps in slides_keypoints.items():
             if len(src_dst_kps) < 5:
                 continue
@@ -148,17 +147,16 @@ class SlideMatcher:
             if homog is None:
                 continue
             dbg_src_pts = []
-            calc_result = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx, dbg_src_pts=dbg_src_pts)
-            if len(calc_result) < 10 or calc_result is None:
+            verified_descriptor_idxs = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx, dbg_src_pts=dbg_src_pts)
+            if len(verified_descriptor_idxs) < 10 or verified_descriptor_idxs is None:
                 continue
 
-            homographies[slide_idx] = homog
-            picked_descriptors += calc_result
+            picked_descriptors += verified_descriptor_idxs
             picked_slides.append(slide_idx)
-            warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
             if debug_info is not None and (debug_info is [] or len(debug_info) <= 3):
                 if len(debug_info) == 3:
                     debug_info.pop(-1)
+                warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
                 best_keypoints1 = [cv2.KeyPoint(*x[0][0], 1) for x in dbg_src_pts]
                 best_keypoints2 = [cv2.KeyPoint(*x[1][0], 1) for x in dbg_src_pts]
                 debug_info.append({
@@ -179,12 +177,12 @@ class SlideMatcher:
                     'homog': homog,
                     'warped_image': warped_img})
                 # debug_info = sorted(debug_info,
-                #                     key=lambda img_tup: match_histogram[img_tup['matched_slide']],
+                #                     key=lambda img_tup: slide_scores[img_tup['matched_slide']],
                 #                     reverse=True)
-        match_histogram = self.pick_best_slide(picked_descriptors, picked_slides)
-        if match_histogram == {}:
-            return match_histogram, None, None
-        return match_histogram, max(match_histogram, key=match_histogram.get), debug_info
+        slide_scores = self.score_by_slide(picked_descriptors, picked_slides)
+        if slide_scores == {}:
+            return slide_scores, None, None
+        return slide_scores, max(slide_scores, key=slide_scores.get), debug_info
 
     def descIdxToSlideIdx(self, train_id):
         return bisect(self.last_slide_kp_idx, train_id)
@@ -218,17 +216,3 @@ class SlideMatcher:
         np.set_printoptions(threshold=sys.maxsize)
         self.descriptors = np.vstack(self.descriptors)
         self.flannIndex = cv2.flann.Index(self.descriptors, {"algorithm": 1, "trees": 1})
-        # calculate tf-idf
-        # descriptor_count = self.descriptors.shape[0]
-        # self.dataset_tf_idf = np.zeros(descriptor_count)
-        # slide_count = self.presentation.get_slide_cnt()
-        # for idx in range(0, slide_count):
-        #     n_in_frame = self.slideDescCnt(idx)
-        #     for i in range(*self.slideIdxToDescRange(idx)):
-        #         same_descriptors = self.find_all_similar_descriptors_indexes(i)
-        #         same_in_frame = sum(1 for x in same_descriptors if self.descIdxToSlideIdx(x) == idx)
-        #         df = len({self.descIdxToSlideIdx(x) for x in same_descriptors})
-        #         # td-idf weight from https://www.cs.toronto.edu/~fidler/slides/2022Winter/CSC420/lecture14.pdf#page=42
-        #         self.dataset_idf.append(np.log2(slide_count / df))
-        #         self.dataset_tf_idf[i] = (same_in_frame / n_in_frame) * self.dataset_idf[i]
-        #     self.slide_tf_idf_norms.append(np.linalg.norm(self.dataset_tf_idf[slice(*self.slideIdxToDescRange(idx))]))

@@ -4,7 +4,7 @@ from typing import Any
 
 import cv2
 
-from src.VideoInfo import PresentationSlideIntervals
+from src.SlideIntervals import SlideIntervals
 from . import DataProvider
 
 
@@ -15,7 +15,7 @@ class IntervalVideoProvider(DataProvider):
         self.video_path = video_path
         self.test_cnt = 0
         with json_path.open("r", encoding="utf-8") as f:
-            self.intervals = PresentationSlideIntervals.from_JSON(f)
+            self.intervals = SlideIntervals.from_JSON(f)
 
     def __del__(self):
         if self.video is not None:

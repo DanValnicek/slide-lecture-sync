@@ -8,7 +8,7 @@ from PIL.Image import Image
 from pymupdf import pymupdf
 
 
-class PresentationCreator:
+class SlidesCreator:
     _registry = {}
 
     @classmethod
@@ -44,8 +44,8 @@ class ImageDecorator(ABC):
 
 
 # A decorator for Presentation slides that uses ImageDecorator to wrap images
-class PresentationSlide(ImageDecorator):
-    def __init__(self, img: Image, page_number: int, presentation: "Presentation") -> None:
+class Slide(ImageDecorator):
+    def __init__(self, img: Image, page_number: int, presentation: "Slides") -> None:
         super().__init__(img)
         self.presentation = presentation
         self.page_number = page_number
@@ -60,9 +60,9 @@ class PresentationSlide(ImageDecorator):
 
 
 # Abstract base class for Presentation, with factory method to load correct class based on file extension
-class Presentation(ABC):
+class Slides(ABC):
 
-    def get_slide(self, slide_number: int) -> PresentationSlide:
+    def get_slide(self, slide_number: int) -> Slide:
         ...
 
     def get_all_slides(self):
@@ -76,21 +76,25 @@ class Presentation(ABC):
 
     def __new__(cls, path: Path):
         # Dynamically assign class based on file extension
-        if cls is Presentation:
-            cls = PresentationCreator.get(path.suffix)
+        if cls is Slides:
+            cls = SlidesCreator.get(path.suffix)
         return super().__new__(cls)
 
     def get_pdf_file_path(self):
-        pass
+        """
+            Get a path to pdf representation of slides.
+            If the type is not native PDF a conversion to PDF has to be made and saved temporarily.
+        """
+        raise NotImplementedError()
 
     def __init__(self, path: Path):
         pass
 
 
 # Register PdfPresentation for .pdf extension
-@PresentationCreator.register('.pdf')
-class PdfPresentation(Presentation):
-    _slides: List[PresentationSlide]
+@SlidesCreator.register('.pdf')
+class PdfSlides(Slides):
+    _slides: List[Slide]
 
     def __init__(self, path: Path):
         self.path = Path(path)
@@ -101,7 +105,7 @@ class PdfPresentation(Presentation):
             corrected_width = 480 / pdf_height * pdf_width
             dpi = max(round(sqrt(480 * corrected_width / (pdf_width * pdf_height))), 1)
             slides.append(page.get_pixmap(dpi=dpi).pil_image())
-        self._slides = [PresentationSlide(img=img, page_number=i, presentation=self) for i, img in
+        self._slides = [Slide(img=img, page_number=i, presentation=self) for i, img in
                         enumerate(slides)]
 
         logging.getLogger(__name__).debug("file count: " + str(self.get_slide_cnt()))
@@ -109,13 +113,13 @@ class PdfPresentation(Presentation):
     def get_pdf_file_path(self):
         return self.path
 
-    def get_slide(self, slide_number: int) -> PresentationSlide:
+    def get_slide(self, slide_number: int) -> Slide:
         return self._slides[slide_number]
 
     def get_all_slides(self):
         return self._slides
 
-    def set_slide(self, slide_number: int, value: PresentationSlide):
+    def set_slide(self, slide_number: int, value: Slide):
         self._slides[slide_number] = value
 
     def get_slide_cnt(self):

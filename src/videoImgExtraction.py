@@ -6,15 +6,15 @@ import cv2
 from PySide6.QtCore import Signal, QThread
 
 from src.Argparser import CustomArgParser
-from src.Presentation import Presentation
+from src.Slides import Slides
 from src.SlideMatcher import SlideMatcher
-from src.VideoInfo import PresentationSlideIntervals
+from src.SlideIntervals import SlideIntervals
 
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     print(CustomArgParser.get_args().pdf)
-    presentation = Presentation(CustomArgParser.get_args().pdf)
+    presentation = Slides(CustomArgParser.get_args().pdf)
 
     w, h = presentation.get_slide(0).image.size
     logger.debug("height: " + str(h) + "width: " + str(w))
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     slide_matcher.create_training_keypoint_set()
     pos = 60000 * 2
     matching_plots = []
-    slide_intervals = PresentationSlideIntervals()
+    slide_intervals = SlideIntervals()
     while pos < video_duration:
         start_time = datetime.now()
         pos += 1000
@@ -49,7 +49,7 @@ class SlideIntervalFinder(QThread):
 
     def __init__(self, video_path: Path, presentation_path: Path, out_pdf_path: Path):
         super().__init__()
-        self.presentation = Presentation(presentation_path)
+        self.presentation = Slides(presentation_path)
         w, h = self.presentation.get_slide(0).image.size
         logger.debug("height: " + str(h) + "width: " + str(w))
         self.video = cv2.VideoCapture(video_path, apiPreference=cv2.CAP_FFMPEG)
@@ -60,10 +60,10 @@ class SlideIntervalFinder(QThread):
     def get_frame_cnt(self):
         return self.video_duration // 1000
 
-    def run(self) -> PresentationSlideIntervals:
+    def run(self) -> SlideIntervals:
         self.slide_matcher.create_training_keypoint_set()
         pos = 0
-        slide_intervals = PresentationSlideIntervals()
+        slide_intervals = SlideIntervals()
         while pos < self.video_duration:
             if self.isInterruptionRequested():
                 break

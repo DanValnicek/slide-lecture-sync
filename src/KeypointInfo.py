@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.Presentation import ImageDecorator
+from src.Slides import ImageDecorator
 
 
 class KeypointInfo(ImageDecorator):

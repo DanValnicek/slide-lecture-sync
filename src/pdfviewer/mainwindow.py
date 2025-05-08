@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QDialog, QFileDialog, QMainWindow, QMessageBox,
                                QSpinBox)
 from PySide6.QtCore import QModelIndex, QPoint, QStandardPaths, QUrl, Slot, Qt, QEvent, Signal
 
-from src.VideoInfo import PresentationSlideIntervals
+from src.SlideIntervals import SlideIntervals
 from src.VideoPresentationProcessingWidget import VideoPresentationProcessingWidget
 from .ui_mainwindow import Ui_MainWindow
 from .zoomselector import ZoomSelector

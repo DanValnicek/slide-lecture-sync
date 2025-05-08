@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from pypdf import PdfWriter
 
-from src.Presentation import Presentation
+from src.Slides import Slides
 from src.SlideMatcher import SlideMatcher
 from .providers import IntervalVideoProvider, DataProvider, CVATXMLProvider, IDMVideoProvider
 
@@ -167,7 +167,7 @@ class BaseSlideMatcherTest:
         presentation_path = data_provider.presentation_path
         global slide_matcher
         if slide_matcher is None or slide_matcher.presentation.get_pdf_file_path() != presentation_path:
-            slide_matcher = SlideMatcher(Presentation(presentation_path))
+            slide_matcher = SlideMatcher(Slides(presentation_path))
             slide_matcher.create_training_keypoint_set()
         return slide_matcher
 

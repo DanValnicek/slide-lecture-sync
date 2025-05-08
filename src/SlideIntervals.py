@@ -10,7 +10,7 @@ from src.PdfExtender import PdfExtender
 from src.utils import ms_to_hms, hms_to_ms
 
 
-class PresentationSlideIntervals:
+class SlideIntervals:
 
     def __init__(self, pdf_path: Path | None = None):
         self.slide_intervals = dict()
@@ -95,7 +95,7 @@ class PresentationSlideIntervals:
             int(key): [(hms_to_ms(t_s), hms_to_ms(t_e)) for t_s, t_e in value]
             for key, value in intervals_serialized.items()
         }
-        presentation_intervals = PresentationSlideIntervals()
+        presentation_intervals = SlideIntervals()
         presentation_intervals.slide_intervals = slide_intervals
         return presentation_intervals
 
@@ -113,7 +113,7 @@ class PresentationSlideIntervals:
 
 if __name__ == '__main__':
     pdf_path = sys.argv[1]
-    pres_intervals = PresentationSlideIntervals(Path(pdf_path))
+    pres_intervals = SlideIntervals(Path(pdf_path))
     print(pres_intervals.to_JSON())
     pres_intervals.get_slide_from_position(0)
     readable_inverted = [(ms_to_hms(s), ms_to_hms(e), sl) for s, e, sl in pres_intervals.inverted_slide_intervals]

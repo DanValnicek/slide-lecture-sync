@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, QPoint
 from PySide6.QtCore import Slot, QUrl
 from PySide6.QtWidgets import QWidget, QPushButton, QCheckBox, QSizePolicy, QVBoxLayout
 
-from src.VideoInfo import PresentationSlideIntervals
+from src.SlideIntervals import SlideIntervals
 from src.pdfviewer.ScrollableButtonList import ButtonListWidget
 from src.videoPlayer.pyqt6_video_player import VideoPlayerWindow
 from src.utils import ms_to_hms
@@ -15,7 +15,7 @@ class VideoOpener(QWidget):
     def __init__(self, doc_loc_sig, pdf_view):
         super().__init__(None)
         self.setDisabled(True)
-        self.slide_intervals = PresentationSlideIntervals()
+        self.slide_intervals = SlideIntervals()
         self.video_player = None
         self.pdf_view = pdf_view
 
@@ -43,7 +43,7 @@ class VideoOpener(QWidget):
 
     @Slot(QUrl)
     def document_changed(self, location: QUrl):
-        self.slide_intervals = PresentationSlideIntervals(Path(location.toLocalFile()))
+        self.slide_intervals = SlideIntervals(Path(location.toLocalFile()))
         if self.slide_intervals.are_empty():
             self.setDisabled(True)
             return
