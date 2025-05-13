@@ -1,5 +1,7 @@
 # Copyright (C) 2022 The Qt Company Ltd.
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+# edited by Dan Valníček
+# UI of the video player.
 from __future__ import annotations
 
 import gc
@@ -18,7 +20,7 @@ from PySide6.QtMultimedia import (QAudioOutput, QMediaFormat,
                                   QMediaPlayer, QAudio)
 from PySide6.QtMultimediaWidgets import QVideoWidget
 
-AVI = "video/x-msvideo"  # AVI
+AVI = "video/x-msvideo"
 
 MP4 = 'video/mp4'
 
@@ -77,12 +79,6 @@ class VideoPlayerWindow(QMainWindow):
         self._previous_action = tool_bar.addAction(icon, "Previous")
         self._previous_action.triggered.connect(self.previous_clicked)
         play_menu.addAction(self._previous_action)
-
-        # icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaPlaybackPause,
-        #                        style.standardIcon(QStyle.SP_MediaPause))
-        # self._pause_action = toolbar_lower.addAction(icon, "Pause")
-        # self._pause_action.triggered.connect(self._player.pause)
-        # play_menu.addAction(self._pause_action)
 
         icon = QIcon.fromTheme(QIcon.ThemeIcon.MediaSkipForward,
                                style.standardIcon(QStyle.SP_MediaSkipForward))

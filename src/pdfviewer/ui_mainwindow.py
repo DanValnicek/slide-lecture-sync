@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# taken from pyqt PDF viewer example
+# edited by Dan Valníček
+# This file arranges the ui elements in the PDF viewer UI.
 ################################################################################
 ## Form generated from reading UI file 'mainwindow.ui'
 ##

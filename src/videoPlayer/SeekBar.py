@@ -1,4 +1,5 @@
-from datetime import time, timedelta, datetime
+# author Dan Valníček
+# Seekbar for the video player.
 
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QProgressBar, QWidget, QHBoxLayout, QLabel
@@ -17,7 +18,7 @@ class SeekBar(QWidget):
             self.wasPlaying = False
             self.player = player
             self.setMinimum(0)
-            self.setTextVisible(False)  # Hide the percentage text if not needed
+            self.setTextVisible(False)
             self.positionChanged.connect(player.setPosition)
             self.player.positionChanged.connect(self.setValue)
             self.player.durationChanged.connect(self.setMaximum)

@@ -1,3 +1,6 @@
+# author Dan Valníček
+# This file contains the whole widget for interacting with the video based on the stored intervals.
+# Button for scrolling to slide shown in the video, checkbox to follow the video, and a widget with the intervals for the slide.
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QPoint
@@ -29,11 +32,9 @@ class VideoOpener(QWidget):
 
     def init_ui(self):
 
-        # self.open_vid_here_btn.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.scroll_to_vid_current_slide.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         layout = QVBoxLayout()
-        # layout.addWidget(self.open_vid_here_btn)
         layout.addWidget(self.scroll_to_vid_current_slide)
         layout.addWidget(self.follow_vid_checkbox)
         layout.addWidget(self.slide_intervals_btns)

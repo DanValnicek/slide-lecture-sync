@@ -1,3 +1,6 @@
+# author Dan Valníček
+# This file contains a widget for showing slide appearance intervals.
+
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget, QScrollArea
 

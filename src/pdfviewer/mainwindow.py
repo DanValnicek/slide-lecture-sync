@@ -1,5 +1,8 @@
 # Copyright (C) 2022 The Qt Company Ltd.
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
+
+# edited by Dan Valníček
+# This file contains code for creation and function of the main window of the PDF viewer.
 from __future__ import annotations
 
 import math
