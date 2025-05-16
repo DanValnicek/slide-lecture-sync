@@ -1,3 +1,5 @@
+# author Dan Valníček
+# This file contains the code used for testing of the SlideMatcher class.
 import os
 from pathlib import Path
 
@@ -7,13 +9,14 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from pypdf import PdfWriter
 
-from src.Slides import Slides
 from src.SlideMatcher import SlideMatcher
+from src.Slides import Slides
 from .providers import IntervalVideoProvider, DataProvider, CVATXMLProvider, IDMVideoProvider
 
 out_dir = os.path.join(Path(__file__).parent.resolve(), "test_output/")
 
 
+# data class for storage of information printed into failure reports
 class FailureInfo:
     images: list
     match_score_chart: dict
@@ -29,32 +32,34 @@ class FailureInfo:
 
 
 test_data_path = Path(__file__).parent / Path('test_data')
-data_path = Path(__file__).parents[1] / Path('data')
-videos_path = data_path / Path("videos")
-pdfs_path = data_path / Path("pdfs")
+videos_path = test_data_path / Path("videos")
+pdfs_path = test_data_path / Path("pdfs")
+JSONAnnotations_path = test_data_path /'JSON_interval_annotations'
+# definitions of data providers specifying tests that will be run
 providers = [
     IDMVideoProvider(),
-    CVATXMLProvider(test_data_path / 'IPK_test_imgs',
-                    test_data_path / 'annotations.xml',
-                    test_data_path / 'IPK2023-24L-07-MULTICAST.pdf'),
-    IntervalVideoProvider(test_data_path / 'INP.json',
+    CVATXMLProvider(test_data_path / 'IPK_annotation_test_data',
+                    test_data_path / 'IPK_annotation_test_data'/ 'annotations.xml',
+                    test_data_path / 'pdfs'/ 'IPK2023-24L-07-MULTICAST.pdf'),
+    IntervalVideoProvider(JSONAnnotations_path/ 'INP.json',
                           videos_path / "INP_2023-10-24_1080p.mp4",
                           pdfs_path / 'inp2023_06alu.pdf'),
-    IntervalVideoProvider(test_data_path / 'IOS.json',
+    IntervalVideoProvider(JSONAnnotations_path / 'IOS.json',
                           videos_path / "IOS_2023-02-22_1080p.mp4",
                           pdfs_path / "ios-prednaska-03.pdf"),
-    IntervalVideoProvider(test_data_path / 'IDM.json',
+    IntervalVideoProvider(JSONAnnotations_path / 'IDM.json',
                           videos_path / "IDM_2023-11-07_1080p.mp4",
                           pdfs_path / "grafy1.pdf"),
-    IntervalVideoProvider(test_data_path / 'PIS.json',
+    IntervalVideoProvider(JSONAnnotations_path / 'PIS.json',
                           videos_path / "PIS_objektovy_model2.mp4",
                           pdfs_path / "PIS_objektovy_model_dat.pdf"),
-    IntervalVideoProvider(test_data_path / 'IPK.json',
+    IntervalVideoProvider(JSONAnnotations_path / 'IPK.json',
                           videos_path / "IPK_2024-04-04_1080p.mp4",
                           pdfs_path / "IPK2023-24L-07-MULTICAST.pdf"),
 ]
 
 
+# generator of tests because pytest has to know a list of test that will be executed beforehand
 def pytest_generate_tests(metafunc):
     if "slide_matching_test" in metafunc.fixturenames:
         provider = metafunc.cls.provider
@@ -67,13 +72,11 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("slide_matching_test", test_cases)
 
 
-# passed = 0
-# failed = 0
-
 slide_matcher = None
 
 
 class BaseSlideMatcherTest:
+    """Test class testing the SlideMatcher"""
     provider: DataProvider = None  # will be set later
     failed: int
     passed: int
@@ -83,11 +86,9 @@ class BaseSlideMatcherTest:
         cls.passed = 0
         cls.failed = 0
 
-    # passed_cnt = 0
-
-    # slide_matcher = None
-
     def create_failure_report_single_match(self, output_path, failure_info: FailureInfo):
+        """This method will generate a pdf file of single failed test.
+         The pdf will be stored in specified location waiting for merging later. """
         if failure_info.expected_slide is None:
             failure_info.expected_slide = -1
         if failure_info.matched_slide is None:
@@ -127,17 +128,9 @@ class BaseSlideMatcherTest:
                 plt.tight_layout()
                 pdf.savefig(fig, bbox_inches='tight')
                 plt.close(fig)  # Close figure to free up memory
-                # fig, axes = plt.subplots(1, 1, figsize=(5, 5))  # Two rows: image + bar chart
-                # axes.table(
-                #     cellText=test_data['homog2'],
-                #     cellLoc='center',
-                #     loc='center'
-                # )
-                # plt.tight_layout()
-                # pdf.savefig(fig, bbox_inches='tight')
-                # plt.close(fig)  # Close figure to free up memory
 
     def create_failure_report(self, output_path, tmp_out_dir):
+        """Concatenates failure reports of all failed tests into a single pdf file."""
         # Initialize the PDF
         title_pdf_name = "!Title.pdf"  # underscore to make it first in sorted list
         with PdfPages(tmp_out_dir / title_pdf_name) as pdf:
@@ -159,11 +152,13 @@ class BaseSlideMatcherTest:
 
     @pytest.fixture(scope="class")
     def test_tmp_dir(self, tmp_path_factory, request):
+        """Creates a testing directory and yields it to test functions."""
         tmp_dir = tmp_path_factory.mktemp("match_testing")
         yield tmp_dir
         self.create_failure_report(os.path.join(out_dir, self.provider.get_test_suite_name()), tmp_dir)
 
     def setup_matcher(self, data_provider: DataProvider):
+        """Sets up a SlideMatcher instance for testing purposes."""
         presentation_path = data_provider.presentation_path
         global slide_matcher
         if slide_matcher is None or slide_matcher.presentation.get_pdf_file_path() != presentation_path:
@@ -172,6 +167,7 @@ class BaseSlideMatcherTest:
         return slide_matcher
 
     def test_slide_matcher(self, slide_matching_test, test_tmp_dir):
+        """Tests SlideMatcher output against provided annotation by provider."""
         provider, test = slide_matching_test
         slide_match = self.setup_matcher(provider)
         slide_n, frame = (provider.get_test_input(test))
@@ -179,7 +175,7 @@ class BaseSlideMatcherTest:
         try:
             assert best_slide == slide_n
             type(self).passed += 1
-            # cv2.imwrite("idk.png", debug_data[0]['visual'])
+            # uncomment for reports on passed tests
             # create_failure_report_single_match(
             #     test_tmp_dir,
             #     FailureInfo(
@@ -204,6 +200,7 @@ class BaseSlideMatcherTest:
             raise
 
 
+# instantiate annotation providers
 for provider in providers:
     name = f"TestSlideMatcher_{provider.get_test_suite_name()}"
     globals()[name] = type(name, (BaseSlideMatcherTest,), {"provider": provider})

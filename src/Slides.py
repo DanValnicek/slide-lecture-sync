@@ -1,3 +1,5 @@
+# author Dan Valníček
+# This file implements abstract class acting as an interface for slides in different formats, as well as PDF format implementation
 import logging
 from abc import ABC
 from math import sqrt
@@ -9,6 +11,7 @@ from pymupdf import pymupdf
 
 
 class SlidesCreator:
+    """Registry pattern implementation."""
     _registry = {}
 
     @classmethod
@@ -29,8 +32,9 @@ class SlidesCreator:
         return cls._registry[extension]
 
 
-# Base decorator class for Image
 class ImageDecorator(ABC):
+    """Base decorator class for Image"""
+
     def __init__(self, img: Image) -> None:
         self._img_decor = img
 
@@ -43,14 +47,14 @@ class ImageDecorator(ABC):
         return getattr(self._img_decor, method_name)
 
 
-# A decorator for Presentation slides that uses ImageDecorator to wrap images
 class Slide(ImageDecorator):
+    """A decorator for Presentation slides that uses ImageDecorator to wrap images"""
+
     def __init__(self, img: Image, page_number: int, presentation: "Slides") -> None:
         super().__init__(img)
         self.presentation = presentation
         self.page_number = page_number
 
-    # Example additional method added by the decorator
     def get_page_number(self):
         return self.page_number
 
@@ -59,8 +63,8 @@ class Slide(ImageDecorator):
         return self.image.size
 
 
-# Abstract base class for Presentation, with factory method to load correct class based on file extension
 class Slides(ABC):
+    """Abstract base class for Presentation, with factory method to load correct class based on file extension"""
 
     def get_slide(self, slide_number: int) -> Slide:
         ...
@@ -94,6 +98,7 @@ class Slides(ABC):
 # Register PdfPresentation for .pdf extension
 @SlidesCreator.register('.pdf')
 class PdfSlides(Slides):
+    """Class implementing PDF slides"""
     _slides: List[Slide]
 
     def __init__(self, path: Path):

@@ -1,3 +1,5 @@
+# author Dan Valníček
+# This file is used to include extension information into the DeveloperExtensions dictionary inside the PDF file
 from pypdf import PdfWriter
 from pypdf.generic import NameObject, DictionaryObject, NumberObject, TextStringObject
 

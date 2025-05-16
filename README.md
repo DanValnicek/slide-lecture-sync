@@ -84,34 +84,6 @@
 
 
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
-
-
-
 <!-- ABOUT THE PROJECT -->
 
 ## About The Project
@@ -133,138 +105,172 @@
 [//]: # ([![Video showcase]&#40;http://img.youtube.com/vi/Ui0M3u0Rpxk/0.jpg&#41;]&#40;https://youtu.be/Ui0M3u0Rpxk&#41; )
 
 This app was made to make the search for a specific part of lecture easier, by creating a list of time intervals for each slide in a supplied PDF presentation.
+The application is made using Pyside6 which is a Qt interface for Python.
+The annotations can be created automatically in the app and stored directly inside PDF for later review.
+Currently, it works only on Windows.
+Jump to the <a href="#usage">usage</a> section to find out more.
+
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Built With
+<!-- DIRECTORY STRUCTURE -->
 
-[![Python][python-shield]][python-url]
-
-
+## Directory structure
+```
+.
+├── LICENSE.BSD
+├── LICENSE.txt
+├── README.md                               - this file
+├── __main__.py
+├── env
+│   └── environment.yml                     - conda environment file
+├── images                                  - images for this README.md
+├── out
+│   ├── build
+│   ├── dist
+│   │   └── slide-lecture-sync.exe          - precompiled executable for Windows
+│   ├── main.spec
+│   └── slide-lecture-sync.spec
+├── src
+│   ├── Argparser.py                         - argument parsing
+│   ├── PdfExtender.py                       - code for inserting my developer tag into PDF files
+│   ├── SlideIntervals.py                    - slide interval storage data structure
+│   ├── SlideMatcher.py                      - the slide-matching implementation
+│   ├── Slides.py                            - slide interfacing classes
+│   ├── VideoPresentationProcessingWidget.py - menu for GUI video processing implementation
+│   ├── __init__.py
+│   ├── pdfviewer                            - directory with PDF viewer implementation
+│   ├── utils.py
+│   ├── videoImgExtraction.py                - entry point for CLI execution
+│   └── videoPlayer                          - directory with video player implementation
+├── tests 
+│   ├── __init__.py
+│   ├── providers                            - scripts that provide data to the SlideMatcher_tests
+│   ├── test_data                            - data used in testing
+│   │   └── IPK_annotation_test_data         - testing annotations for IPK
+│   │   └── JSON_interval_annotations        - testing annotations for all lectures in JSON
+│   │   └── pdfs                             - pdf files used for testing
+│   │   └── videos                           - lecture videos used for testing
+│   ├── test_output                          - directory where failure reports are created, historical outputs are included too
+│   │   └── Version1                         - Test results of the oldest version
+│   │   └── Version2                         - Test results of the version that used TF-IDF
+│   │   └── Version3                         - Test results of the latest version
+│   └── test_slideMatcher.py                 - the slide-matching accuracy test suite
+└── thesis-extras
+    └── annotated_pdfs                       - pdfs containing annotations of lectures
+    └── BP_Dan_Valnicek_thesis.pdf           - techincal report
+    └── BP_slide-video-sync.mp4              - illustrative video of the program
+    └── Dan_Valnicek_poster.pdf              - poster
+    └── Latex_files.zip                      - files needed for thesis pdf compilation
+```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- GETTING STARTED -->
 
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
+ 
 ### Installation
 
-You can download already precompiled .exe from releases.
+Precompiled .exe is available from releases or from `./out/dist/slide-lecture-sync.exe`. 
 
 > Currently running on linux doesn't work due to issues with the shiboken6 library.
  
 Another option is to clone it and run it yourself using conda: 
 1. Clone the repo
-   ```sh
-   git clone https://github.com/DanValnicek/slide-lecture-sync.git
-   ```
+```sh
+git clone https://github.com/DanValnicek/slide-lecture-sync.git
+```
 2. Install conda by following instructions at [anaconda.com](https://www.anaconda.com/docs/getting-started/miniconda/install#windows-power-shell)
 3. Enter `./env` and create and activate environment
-    ```sh
-        cd ./env
-        conda env create -f environment.yml
-        conda activate slide-lecture-sync
-    ```
+```sh
+ cd ./env
+ conda env create -f environment.yml
+ conda activate slide-lecture-sync
+```
 4. Update the environment
-    ```sh
-   conda env update -n slide-lecture-sync --prune
-   ```
-5. Move to project root and run main.py
-    ```sh
-   cd ..
-   python main.py
-   ```
+```sh
+conda env update -n slide-lecture-sync --prune
+```
+5. Change directory to project root and run main.py
+ ```sh
+cd ..
+python main.py
+```
+   
+
+### Testing 
+> To run tests the conda environment from the previous section needs to be active.
+ 
+There are 41385 tests, which take multiple hours to run. 
+To run the tests execute:
+```shell
+pytest .\tests
+```
+The tests generate failure reports for failed tests in PDF.
+These reports can be found in `./tests/test_output`. 
+The failure reports historically run on different versions are located in the same directory.
+
+#### Testing dataset
+The dataset is located in `./tests/test_data`. 
+There are multiple types of data each of which has a special provider class located in `./tests/providers`
+
+### Executable compilation
+>Executables have to be made with conda environment activated.
+ 
+The executable file can be made using the pyinstaller running this command from the `./out` directory:
+```shell
+pyinstaller --onefile --name=slide-lecture-sync --paths=../src ../__main__.py --icon=../data/app_icon.ico --noconsole
+```
+The executable will be created in the `./out/dist` directory.
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
+ 
 <!-- USAGE EXAMPLES -->
 
 ## Usage
 
 The core of the application is a PDF viewer that can be used normally.
-In case 
+In case the user inserts a PDF with custom interval annotations slide intervals will be shown on the left.
+When an interval is clicked for the first time a dialog will pop up asking to choose a video of the lecture.
+After this, clicking the intervals will skip the video to the beginning of the interval.
+
+To try out watching videos with annotations take pdf from `./thesis-extras/annotated_pdfs` and open it in the app located
+in `./out/dist/` the videos are located in `./tests/test_data/videos`
+### Annotation creation
+The annotated PDF can be created by accessing `File > Annotate slides in video`.
+The menu that pops up will ask for location of the video, the PDF file, and an output PDF file that will be created.
+After this information is inserted the "Start Processing" button will start the annotation, which will take
+about half the length of the video.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
-<!-- ROADMAP -->
-
-## Roadmap
-
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
-
-See the [open issues](https://github.com/DanValnicek/slide-lecture-sync/issues) for a full list of proposed features (and known
-issues).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## Code structure
-# TODO
-<!-- CONTRIBUTING -->
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any
-contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also
-simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
- 
-<!-- LICENSE -->
+  <!-- LICENSE -->
 
 ## License
 
 Distributed under the project_license. See `LICENSE.txt` for more information.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- CONTACT -->
-
-## Contact
-
-Dan Valníček 
-
-Project Link: [https://github.com/DanValnicek/slide-video-sync](https://github.com/DanValnicek/slide-video-sync)
+A portion of the source code is based on Qt examples for PDF viewer and video player.
+These files are under the BSD-3 license.
+See `LICENSE.BSD` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
+ 
 <!-- ACKNOWLEDGMENTS -->
 
 ## Acknowledgments
 
-* []()
-* []()
-* []()
+* prof. Ing. Adam Herout Ph.D for his supervision of research
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## License
-[![project_license][license-shield]][license-url]
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
@@ -284,41 +290,3 @@ Project Link: [https://github.com/DanValnicek/slide-video-sync](https://github.c
 [license-shield]: https://img.shields.io/github/license/DanValnicek/slide-lecture-sync.svg?style=for-the-badge
 
 [license-url]: https://github.com/DanValnicek/slide-lecture-sync/blob/master/LICENSE.txt
-
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-
-[linkedin-url]: https://linkedin.com/in/linkedin_username
-
-[product-screenshot]: images/screenshot.png
-
-[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
-
-[Next-url]: https://nextjs.org/
-
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-
-[React-url]: https://reactjs.org/
-
-[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
-
-[Vue-url]: https://vuejs.org/
-
-[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
-
-[Angular-url]: https://angular.io/
-
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-
-[Svelte-url]: https://svelte.dev/
-
-[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
-
-[Laravel-url]: https://laravel.com
-
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-
-[Bootstrap-url]: https://getbootstrap.com
-
-[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-
-[JQuery-url]: https://jquery.com 

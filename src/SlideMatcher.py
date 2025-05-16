@@ -1,3 +1,5 @@
+# author Dan Valníček
+# This file provides implementation of the whole slide-matching algorithm packed into a single class.
 import sys
 from bisect import bisect
 from collections import defaultdict
@@ -11,9 +13,10 @@ from src import Slides
 
 
 class SlideMatcher:
+    """Implementation of the slide matching pipeline."""
     video: cv2.VideoCapture
     presentation: Slides
-    # list of keypoint/descriptor indexes of the last
+    # list of the last keypoint/descriptor indexes in the descriptors/keypoints list for each slide
     last_slide_kp_idx: list
     descriptors: list
     keypoints: Sequence[cv2.KeyPoint]
@@ -31,6 +34,7 @@ class SlideMatcher:
         self.descriptors = []
 
     def warp_and_recompute_slide_descriptors(self, frame, homog, slide_idx, dbg_src_pts=None):
+        """Warps the original frame by the given homography, recomputes descriptors and returns inliers."""
         warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
         kp2, desc2 = self.sift_detector.compute(warped_img, self.slideKeypoints(slide_idx), None)
         slide_descriptors = self.slideDescriptors(slide_idx)
@@ -49,6 +53,7 @@ class SlideMatcher:
         return descriptors
 
     def score_by_slide(self, matched_descriptors_from_all, slide_idxs):
+        """Scores the similarities for all potential slides, using cosine similarity."""
         if slide_idxs == []:
             return {}
         if len(slide_idxs) == 1:
@@ -65,6 +70,7 @@ class SlideMatcher:
         return scores
 
     def find_all_similar_descriptors_indexes(self, desc_index):
+        """Finds all similar descriptors indexes. Useful when"""
         maxResults = 10
         similar_matches = self.flannIndex.radiusSearch(self.descriptors[desc_index].reshape(1, -1), radius=1,
                                                        maxResults=maxResults)
@@ -77,6 +83,8 @@ class SlideMatcher:
         return similar_matches[1][0]
 
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
+        """Divides descriptors into bins by slide the descriptor matches with.
+        The Lowe's ratio test is done here to prune incorrect matches."""
         kp, desc = self.sift_detector.detectAndCompute(frame, mask)
         instance_cnt = defaultdict(list)
         if desc is None:
@@ -99,6 +107,7 @@ class SlideMatcher:
 
     @staticmethod
     def reasonableHomography(homography, src_w, src_h, dst_w, dst_h) -> bool:
+        """Checks the plausibility of homography by verification of scaling and boundaries."""
         src_size = src_w * src_h
         dst_size = dst_w * dst_h
         min_scale_factor = dst_size / src_size
@@ -124,6 +133,7 @@ class SlideMatcher:
 
     @staticmethod
     def spatial_pruning_and_verification(src_dst_kps, frame_h_w, slide_h_w):
+        """Calculates homography from matched keypoints and checks it plausibility. """
         src_pts = np.float32([v[0] for v in src_dst_kps]).reshape(-1, 1, 2)
         dst_pts = np.float32([v[1] for v in src_dst_kps]).reshape(-1, 1, 2)
         homog, mask = cv2.findHomography(dst_pts, src_pts, cv2.USAC_ACCURATE, 1.0)
@@ -134,6 +144,7 @@ class SlideMatcher:
         return homog
 
     def matched_slide(self, frame, debug_info: list = None):
+        """Matches slide from the precomputed dataset of slides to frame inserted."""
         slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, None)
         picked_descriptors = []
         picked_slides = []
@@ -162,12 +173,9 @@ class SlideMatcher:
                 debug_info.append({
                     'matched_slide': slide_idx,
                     'visual': cv2.drawMatches(
-                        # frame,
                         warped_img,
-                        # [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints1],
                         best_keypoints2,
                         np.array(self.presentation.get_slide(slide_idx).image)[:, :, ::-1],
-                        # [cv2.KeyPoint(pt[0], pt[1], 1) for pt in best_keypoints2],
                         best_keypoints1,
                         [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
                         None,
@@ -176,9 +184,6 @@ class SlideMatcher:
                         flags=cv2.DrawMatchesFlags_DEFAULT),
                     'homog': homog,
                     'warped_image': warped_img})
-                # debug_info = sorted(debug_info,
-                #                     key=lambda img_tup: slide_scores[img_tup['matched_slide']],
-                #                     reverse=True)
         slide_scores = self.score_by_slide(picked_descriptors, picked_slides)
         if slide_scores == {}:
             return slide_scores, None, None
@@ -204,6 +209,7 @@ class SlideMatcher:
         return self.last_slide_kp_idx[slide_idx] - self.last_slide_kp_idx[slide_idx - 1]
 
     def create_training_keypoint_set(self):
+        """Precompute features of the whole presentation for matching through the self.matched_slide method."""
         self.descriptors: ndarray = []
         self.keypoints = []
         for slide in self.presentation.get_all_slides():

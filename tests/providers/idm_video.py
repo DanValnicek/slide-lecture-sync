@@ -1,3 +1,7 @@
+# author Dan Valníček
+# Annotation provider for IDM lecture implemented by having a list of annotated timestamps stored in IDM_slides.py
+# and always taking frame from the timestamp from the IDM video.
+# This was the first annotation provision method for testing.
 from argparse import ArgumentError
 from pathlib import Path
 from typing import Any
@@ -21,7 +25,7 @@ class IDMVideoProvider(DataProvider):
 
     @property
     def presentation_path(self) -> Path:
-        return Path(__file__).parent.parent / Path("test_data/grafy1.pdf")
+        return Path(__file__).parents[1] / Path("test_data/pdfs/grafy1.pdf")
 
     def get_test_cnt(self):
         return len(slides_with_timestamps)
@@ -32,7 +36,7 @@ class IDMVideoProvider(DataProvider):
     def get_test_input(self, test_identifier: Any):
         if self.video is None:
             self.video = cv2.VideoCapture(
-                Path(__file__).parents[2] / Path("data/videos/IDM_2023-11-07_1080p.mp4"))
+                Path(__file__).parents[1] / Path("test_data/videos/IDM_2023-11-07_1080p.mp4"))
         self.video.set(cv2.CAP_PROP_POS_MSEC, test_identifier['time'] / 1000)
         success, frame = self.video.read()
         if success:

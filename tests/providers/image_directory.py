@@ -1,3 +1,8 @@
+# author Dan Valníček
+# Annotation provider for IPK lecture implemented by having a folder full of images with annotations stored in xml file
+# in the CVAT format.
+# The annotations were made using the CVAT platform for image annotations.
+# This is the second method used during development.
 from pathlib import Path
 from xml.etree.ElementTree import ElementTree
 
@@ -27,13 +32,9 @@ class CVATXMLProvider(DataProvider):
     def test_cases(self) -> list[tuple[int, str]]:
         cases = []
         root = ElementTree(file=self.cvat_xml_path)
-        # Iterate over each image element in the XML
         for image in root.findall('image'):
-            # Get the 'name' attribute of the image
             filename = image.get('name')
-            # Find the SlideNum attribute within the tag
             slide_num = image.find(".//tag[@label='Slide']/attribute[@name='SlideNum']").text
-            # Add the (SlideNum, filename) tuple to the list
             cases.append((int(slide_num), filename))
         self.test_cnt = len(cases)
         return cases

@@ -1,3 +1,5 @@
+# author Dan Valníček
+# utils file
 from datetime import timedelta
 
 

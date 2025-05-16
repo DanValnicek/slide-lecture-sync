@@ -1,3 +1,5 @@
+# author Dan Valníček
+# Abstract class implementation for slide annotation providers used as interface for different types of slide annotations.
 import pathlib
 from abc import ABC, abstractmethod
 from typing import Any

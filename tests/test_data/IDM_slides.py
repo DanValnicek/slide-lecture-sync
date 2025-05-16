@@ -1,3 +1,6 @@
+# author Dan Valníček
+# IDM lecture annotated timestamps
+
 # timestamps in microseconds
 slides_with_timestamps = [
     {'time': 1630356020, 'label': 1}, {'time': 1734066007, 'label': 2},
@@ -43,14 +46,3 @@ slides_with_timestamps = [
     {'time': 4912815947, 'label': 81}, {'time': 4913564947, 'label': 82},
     {'time': 4914315947, 'label': 83}, {'time': 4992734942, 'label': 84},
     {'time': 4993234942, 'label': 85}, {'time': 4993735942, 'label': 86}]
-
-
-# class IDM_testing:
-#     video_path = os.path.join(pathlib.Path(__file__).parent.parent.resolve(), "test_data/videos/IDM_2023-11-07_1080p.mp4")
-#     # video_path = "/home/valnicek/pycharmProjects/BP_Homography/test_data/videos/IDM_2023-11-07_1080p.mp4"
-#     presentation_path = pathlib.Path(os.path.join(pathlib.Path(__file__).parent.resolve(), "test_data/grafy1.pdf"))
-#
-#     def get_slide_with_timestamp(self) -> (int, float):
-#         for val in slides_with_timestamps:
-#             # subtract 1 to align with 0 based counting
-#             yield val['label'] - 1, val['time'] / 1000

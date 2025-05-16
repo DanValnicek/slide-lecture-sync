@@ -1,3 +1,5 @@
+# author Dan Valníček
+# Implementation of class for interval storage management
 import json
 import sys
 from bisect import bisect
@@ -11,8 +13,10 @@ from src.utils import ms_to_hms, hms_to_ms
 
 
 class SlideIntervals:
+    """Class for interval storage management."""
 
     def __init__(self, pdf_path: Path | None = None):
+        """Initialize. If initialized with pdf the presence of developer extension is checked, and added if needed."""
         self.slide_intervals = dict()
         self.inverted_slide_intervals = list()
         if pdf_path is None:
@@ -27,6 +31,7 @@ class SlideIntervals:
                 PdfExtender.INTERVALS_SUBKEY_NAME]
 
     def add_point_to_slides(self, slide_n, time_ms):
+        """Inserts a single timestamp to intervals."""
         if slide_n is None:
             return
         self.inverted_slide_intervals = []
@@ -45,11 +50,13 @@ class SlideIntervals:
         self.slide_intervals[slide_n] = slide_int
 
     def are_empty(self):
+        """Check if all intervals are empty."""
         if self.slide_intervals is None or len(self.slide_intervals) == 0:
             return True
         return False
 
     def get_intervals(self, slide_number):
+        """Gets intervals for a specific slide."""
         intervals = self.slide_intervals.get(slide_number, [])
         intervals.sort(key=lambda x: x[0])
         i = 0
@@ -63,6 +70,7 @@ class SlideIntervals:
         return intervals
 
     def get_slide_from_position(self, position_msec):
+        """Looks up the slide which appeared at specified time"""
         if self.inverted_slide_intervals is None or len(self.inverted_slide_intervals) == 0:
             self.inverted_slide_intervals = [
                 (start, end, slide_id) for slide_id, interval_lists in self.slide_intervals.items()
@@ -77,6 +85,7 @@ class SlideIntervals:
         return None
 
     def compile_pdf_w_timestamps(self, original_pdf_path: Path, output_path: Path):
+        """Create a pdf with timestamps included in page dictionaries, and store them in the output path."""
         writer = PdfWriter("new.pdf", original_pdf_path)
         PdfExtender.add_extension_info(writer)
         for i, intervals in self.slide_intervals.items():
@@ -89,6 +98,7 @@ class SlideIntervals:
 
     @staticmethod
     def from_JSON(json_str):
+        """Create instance from JSON data."""
         data = json.load(json_str)  # Parse JSON
         intervals_serialized = data.get("intervals", {})
         slide_intervals = {
@@ -100,6 +110,7 @@ class SlideIntervals:
         return presentation_intervals
 
     def to_JSON(self):
+        """Serialize into JSON."""
         intervals_serialized = {
             str(key): [[ms_to_hms(t_s), ms_to_hms(t_e)] for t_s, t_e in value] for key, value in
             self.slide_intervals.items()
@@ -111,6 +122,7 @@ class SlideIntervals:
         return json.dumps(data)
 
 
+# simple script for printing intervals stored in PDF
 if __name__ == '__main__':
     pdf_path = sys.argv[1]
     pres_intervals = SlideIntervals(Path(pdf_path))

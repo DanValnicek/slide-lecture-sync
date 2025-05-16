@@ -1,9 +1,12 @@
+# author Dan Valníček
+# Parser class for CLI arguments
 import logging
 from argparse import ArgumentParser
 from pathlib import Path
 
 
 class CustomArgParser(ArgumentParser):
+    """ClI argument parser."""
     description = 'Extract images from video'
     _parsed_args = None
 
