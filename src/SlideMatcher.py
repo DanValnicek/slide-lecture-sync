@@ -3,10 +3,12 @@ from bisect import bisect
 from collections import defaultdict
 from math import sqrt
 from typing import Sequence
+
 import cv2
 import numpy as np
 from numpy import ndarray
 from shapely.geometry import Polygon, box
+
 from src import Slides
 
 
@@ -23,7 +25,8 @@ class SlideMatcher:
         self.slide_tf_idf_norms = []
         self.dataset_idf = []
         self.matcher = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5})
-        self.sift_detector = cv2.SIFT.create()
+        self.sift_descriptor = cv2.SIFT.create()
+        self.GFTT_detector = cv2.GFTTDetector.create()
         self.flannIndex = None
         self.presentation = presentation
         self.last_slide_kp_idx = []
@@ -32,7 +35,8 @@ class SlideMatcher:
 
     def warp_and_recompute_slide_descriptors(self, frame, homog, slide_idx, dbg_src_pts=None):
         warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
-        kp2, desc2 = self.sift_detector.compute(warped_img, self.slideKeypoints(slide_idx), None)
+        # kp2 = self.GFTT_detector.detect(warped_img)
+        kp2, desc2 = self.sift_descriptor.compute(warped_img, self.slideKeypoints(slide_idx), None)
         slide_descriptors = self.slideDescriptors(slide_idx)
         matches = self.matcher.knnMatch(desc2, slide_descriptors, k=1)
         if len(matches) < 5:
@@ -77,7 +81,8 @@ class SlideMatcher:
         return similar_matches[1][0]
 
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
-        kp, desc = self.sift_detector.detectAndCompute(frame, mask)
+        kp = self.GFTT_detector.detect(frame)
+        kp, desc = self.sift_descriptor.compute(frame, kp)
         instance_cnt = defaultdict(list)
         if desc is None:
             return instance_cnt
@@ -147,7 +152,8 @@ class SlideMatcher:
             if homog is None:
                 continue
             dbg_src_pts = []
-            verified_descriptor_idxs = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx, dbg_src_pts=dbg_src_pts)
+            verified_descriptor_idxs = self.warp_and_recompute_slide_descriptors(frame, homog, slide_idx,
+                                                                                 dbg_src_pts=dbg_src_pts)
             if len(verified_descriptor_idxs) < 10 or verified_descriptor_idxs is None:
                 continue
 
@@ -172,7 +178,7 @@ class SlideMatcher:
                         [cv2.DMatch(i, i, 0) for i in range(len(best_keypoints1))],
                         None,
                         matchColor=(0, 255, 0),
-                        singlePointColor=(255,0,0),
+                        singlePointColor=(255, 0, 0),
                         flags=cv2.DrawMatchesFlags_DEFAULT),
                     'homog': homog,
                     'warped_image': warped_img})
@@ -207,7 +213,8 @@ class SlideMatcher:
         self.descriptors: ndarray = []
         self.keypoints = []
         for slide in self.presentation.get_all_slides():
-            kp, desc = (self.sift_detector.detectAndCompute(np.array(slide.image), None))
+            kp = self.GFTT_detector.detect(np.array(slide.image))
+            kp, desc = (self.sift_descriptor.compute(np.array(slide.image), kp))
             self.keypoints += kp
             self.last_slide_kp_idx.append(len(self.keypoints))
             if desc is None:
