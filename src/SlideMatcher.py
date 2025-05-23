@@ -91,7 +91,12 @@ class SlideMatcher:
             desc_indices = m[0]
             desc_distance = m[1]
             if desc_distance[0] > desc_distance[1] - 0.5:
+                good_match_dist = desc_distance[0] / 0.9
                 similar_matches = self.find_all_similar_descriptors_indexes(desc_indices[0])
+                is_noise = self.flannIndex.radiusSearch(desc, radius=good_match_dist,
+                                                       maxResults=len(similar_matches))[0] > len(similar_matches)
+                if is_noise:
+                    continue
                 for descriptor_idx in similar_matches:
                     index = self.descIdxToSlideIdx(descriptor_idx)
                     instance_cnt[index].append((self.keypoints[descriptor_idx].pt, kp[i].pt))
@@ -139,6 +144,7 @@ class SlideMatcher:
         return homog
 
     def matched_slide(self, frame, debug_info: list = None):
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, None)
         picked_descriptors = []
         picked_slides = []
@@ -215,6 +221,8 @@ class SlideMatcher:
         for slide in self.presentation.get_all_slides():
             kp = self.GFTT_detector.detect(np.array(slide.image))
             kp, desc = (self.sift_descriptor.compute(np.array(slide.image), kp))
+            image = cv2.cvtColor(np.array(slide.image), cv2.COLOR_RGB2GRAY)
+            kp, desc = (self.sift_descriptor.compute(image, kp))
             self.keypoints += kp
             self.last_slide_kp_idx.append(len(self.keypoints))
             if desc is None:
