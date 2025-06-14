@@ -35,7 +35,7 @@ class IntervalVideoProvider(DataProvider):
         video = cv2.VideoCapture(self.video_path.as_posix(), apiPreference=cv2.CAP_FFMPEG)
         duration = int(video.get(cv2.CAP_PROP_FRAME_COUNT) // video.get(cv2.CAP_PROP_FPS))
         video.release()
-        cases = [i for i in range(0, duration * 1000, 1000000)]
+        cases = [i for i in range(0, duration * 1000, 1000)]
         self.test_cnt = len(cases)
         return cases
 

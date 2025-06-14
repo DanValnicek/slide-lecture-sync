@@ -1,4 +1,5 @@
 import sys
+import time
 from bisect import bisect
 from collections import defaultdict
 from math import sqrt
@@ -25,8 +26,8 @@ class SlideMatcher:
         self.slide_tf_idf_norms = []
         self.dataset_idf = []
         self.matcher = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5})
-        self.sift_descriptor = cv2.SIFT.create()
-        self.GFTT_detector = cv2.GFTTDetector.create()
+        self.feature_descriptor = cv2.SIFT.create()
+        self.feature_detector = cv2.BRISK.create()
         self.flannIndex = None
         self.presentation = presentation
         self.last_slide_kp_idx = []
@@ -35,8 +36,7 @@ class SlideMatcher:
 
     def warp_and_recompute_slide_descriptors(self, frame, homog, slide_idx, dbg_src_pts=None):
         warped_img = cv2.warpPerspective(frame, homog, self.presentation.get_slide(slide_idx).image.size)
-        # kp2 = self.GFTT_detector.detect(warped_img)
-        kp2, desc2 = self.sift_descriptor.compute(warped_img, self.slideKeypoints(slide_idx), None)
+        kp2, desc2 = self.feature_descriptor.compute(warped_img, self.slideKeypoints(slide_idx), None)
         slide_descriptors = self.slideDescriptors(slide_idx)
         matches = self.matcher.knnMatch(desc2, slide_descriptors, k=1)
         if len(matches) < 5:
@@ -81,8 +81,9 @@ class SlideMatcher:
         return similar_matches[1][0]
 
     def detect_and_sort_descriptors_from_frame(self, frame, mask):
-        kp = self.GFTT_detector.detect(frame)
-        kp, desc = self.sift_descriptor.compute(frame, kp)
+        kp = self.feature_detector.detect(frame)
+        # cv2.imwrite(f"frame{time.time()}.png", cv2.drawKeypoints(frame, kp, None))
+        kp, desc = self.feature_descriptor.compute(frame, kp)
         instance_cnt = defaultdict(list)
         if desc is None:
             return instance_cnt
@@ -91,12 +92,12 @@ class SlideMatcher:
             desc_indices = m[0]
             desc_distance = m[1]
             if desc_distance[0] > desc_distance[1] - 0.5:
-                good_match_dist = desc_distance[0] / 0.9
+                # good_match_dist = desc_distance[0] / 0.9
                 similar_matches = self.find_all_similar_descriptors_indexes(desc_indices[0])
-                is_noise = self.flannIndex.radiusSearch(desc, radius=good_match_dist,
-                                                       maxResults=len(similar_matches))[0] > len(similar_matches)
-                if is_noise:
-                    continue
+                # is_noise = self.flannIndex.radiusSearch(desc, radius=good_match_dist,
+                #                                        maxResults=len(similar_matches))[0] > len(similar_matches)
+                # if is_noise:
+                #     continue
                 for descriptor_idx in similar_matches:
                     index = self.descIdxToSlideIdx(descriptor_idx)
                     instance_cnt[index].append((self.keypoints[descriptor_idx].pt, kp[i].pt))
@@ -144,7 +145,7 @@ class SlideMatcher:
         return homog
 
     def matched_slide(self, frame, debug_info: list = None):
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         slides_keypoints = self.detect_and_sort_descriptors_from_frame(frame, None)
         picked_descriptors = []
         picked_slides = []
@@ -219,10 +220,11 @@ class SlideMatcher:
         self.descriptors: ndarray = []
         self.keypoints = []
         for slide in self.presentation.get_all_slides():
-            kp = self.GFTT_detector.detect(np.array(slide.image))
-            kp, desc = (self.sift_descriptor.compute(np.array(slide.image), kp))
-            image = cv2.cvtColor(np.array(slide.image), cv2.COLOR_RGB2GRAY)
-            kp, desc = (self.sift_descriptor.compute(image, kp))
+            # image = cv2.cvtColor(np.array(slide.image), cv2.COLOR_RGB2GRAY)
+            image = cv2.cvtColor(np.array(slide.image), cv2.COLOR_RGB2BGR)
+            kp = self.feature_detector.detect(image)
+            # cv2.imwrite(f"slide{len(self.last_slide_kp_idx)}.png", cv2.drawKeypoints(image, kp, None))
+            kp, desc = (self.feature_descriptor.compute(image, kp))
             self.keypoints += kp
             self.last_slide_kp_idx.append(len(self.keypoints))
             if desc is None:

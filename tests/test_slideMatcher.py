@@ -34,7 +34,7 @@ videos_path = data_path / Path("videos")
 pdfs_path = data_path / Path("pdfs")
 providers = [
     IDMVideoProvider(),
-    CVATXMLProvider(test_data_path / 'IPK_test_imgs',
+    CVATXMLProvider(test_data_path / 'IPK_annotation_test_data',
                     test_data_path / 'annotations.xml',
                     test_data_path / 'IPK2023-24L-07-MULTICAST.pdf'),
     IntervalVideoProvider(test_data_path / 'INP.json',
